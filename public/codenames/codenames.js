@@ -332,9 +332,17 @@
 
   function renderRoomInfo() {
     const room = state.room;
-    const turn = room?.turn || "-";
-    els.turnBadge.textContent = room ? `Turn ${capitalize(turn)}` : "No game";
-    els.turnBadge.dataset.team = turn;
+    const hasVisibleTurn = room && room.status !== "waiting";
+    els.turnBadge.textContent = hasVisibleTurn
+      ? `Turn ${capitalize(room.turn)}`
+      : room
+        ? "Waiting to start"
+        : "No game";
+    if (hasVisibleTurn) {
+      els.turnBadge.dataset.team = room.turn;
+    } else {
+      delete els.turnBadge.dataset.team;
+    }
 
     if (!room) {
       els.redScore.textContent = "Red -";
@@ -393,9 +401,9 @@
 
     const boardChanged = boardWordsSignature(previousRoom.board) !== boardWordsSignature(room.board);
     if (room.status === "playing" && previousRoom.status === "waiting") {
-      addLogEntry(`Game started. ${capitalize(room.turn)} goes first.`);
+      resetLog(`Game started. ${capitalize(room.turn)} goes first.`);
     } else if (room.status === "playing" && boardChanged && previousRoom.board?.length) {
-      addLogEntry(`New game. ${capitalize(room.turn)} goes first.`);
+      resetLog(`New game. ${capitalize(room.turn)} goes first.`);
     }
 
     if (clueSignature(previousRoom.clue) !== clueSignature(room.clue) && room.clue) {
@@ -432,6 +440,10 @@
     if (state.logEntries.length > 80) {
       state.logEntries.splice(0, state.logEntries.length - 80);
     }
+  }
+
+  function resetLog(message) {
+    state.logEntries = message ? [message] : [];
   }
 
   function boardWordsSignature(board = []) {
