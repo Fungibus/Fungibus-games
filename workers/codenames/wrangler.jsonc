@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "codenames-multiplayer",
+  "main": "src/index.js",
+  "compatibility_date": "2026-05-11",
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "CODENAMES_ROOMS",
+        "class_name": "CodenamesRoom"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["CodenamesRoom"]
+    }
+  ]
+}

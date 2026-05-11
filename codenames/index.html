@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="A multiplayer Codenames board with invite-link rooms."
+    >
+    <title>Codenames | Mini Game Projects</title>
+    <link rel="stylesheet" href="../styles.css">
+  </head>
+  <body>
+    <main class="page-shell game-shell">
+      <nav class="back-nav" aria-label="Site">
+        <a href="../">Back to projects</a>
+      </nav>
+
+      <section class="game-hero" aria-labelledby="game-title">
+        <div>
+          <p class="eyebrow">Multiplayer rooms</p>
+          <h1 id="game-title">Codenames</h1>
+          <p class="intro-copy">
+            Invite your table, pick a role, and play from separate screens with
+            synchronized turns.
+          </p>
+        </div>
+        <div class="game-summary" aria-live="polite">
+          <p class="summary-label">Turn</p>
+          <p class="summary-value" id="turnText">No room</p>
+          <p class="summary-note" id="gameMessage">Create a room to start.</p>
+        </div>
+      </section>
+
+      <section class="game-panel room-panel" aria-label="Room controls">
+        <div class="room-grid">
+          <div class="room-code-box">
+            <p class="summary-label">Room</p>
+            <p class="room-code" id="roomCode">------</p>
+          </div>
+
+          <label class="select-field" for="roleSelect">
+            <span>Role</span>
+            <select id="roleSelect">
+              <option value="spectator">Spectator</option>
+              <option value="red-operative">Red operative</option>
+              <option value="blue-operative">Blue operative</option>
+              <option value="red-spymaster">Red spymaster</option>
+              <option value="blue-spymaster">Blue spymaster</option>
+            </select>
+          </label>
+
+          <div class="room-actions">
+            <button class="button secondary-button" type="button" id="createRoomButton">
+              Create Room
+            </button>
+            <button class="button secondary-button" type="button" id="copyInviteButton" disabled>
+              Copy Invite
+            </button>
+          </div>
+        </div>
+
+        <div class="presence-row">
+          <span class="connection-pill" id="connectionText">Offline</span>
+          <span id="playersText">0 connected</span>
+        </div>
+      </section>
+
+      <section class="game-panel" aria-label="Codenames board">
+        <div class="game-toolbar">
+          <div class="score-row" aria-label="Remaining agents">
+            <span class="score-pill score-red" id="redScore">Red 0</span>
+            <span class="score-pill score-blue" id="blueScore">Blue 0</span>
+          </div>
+
+          <div class="control-row">
+            <button class="button secondary-button" type="button" id="endTurnButton" disabled>
+              End Turn
+            </button>
+            <button class="button primary-button" type="button" id="newGameButton" disabled>
+              New Game
+            </button>
+          </div>
+        </div>
+
+        <div class="codename-board" id="board" aria-label="Word grid"></div>
+      </section>
+    </main>
+
+    <script>
+      const ROOM_PATTERN = /^[A-Z0-9]{6,12}$/;
+      const ROLE_LABELS = {
+        "spectator": "Spectator",
+        "red-operative": "Red operative",
+        "blue-operative": "Blue operative",
+        "red-spymaster": "Red spymaster",
+        "blue-spymaster": "Blue spymaster"
+      };
+
+      const boardElement = document.querySelector("#board");
+      const redScore = document.querySelector("#redScore");
+      const blueScore = document.querySelector("#blueScore");
+      const turnText = document.querySelector("#turnText");
+      const gameMessage = document.querySelector("#gameMessage");
+      const roomCode = document.querySelector("#roomCode");
+      const roleSelect = document.querySelector("#roleSelect");
+      const createRoomButton = document.querySelector("#createRoomButton");
+      const copyInviteButton = document.querySelector("#copyInviteButton");
+      const connectionText = document.querySelector("#connectionText");
+      const playersText = document.querySelector("#playersText");
+      const endTurnButton = document.querySelector("#endTurnButton");
+      const newGameButton = document.querySelector("#newGameButton");
+
+      let socket = null;
+      let currentRoom = null;
+      let reconnectTimer = null;
+      let reconnectAttempts = 0;
+      let connectionSerial = 0;
+      let gameState = null;
+      let currentRole = localStorage.getItem("codenamesRole") || "spectator";
+
+      if (!ROLE_LABELS[currentRole]) {
+        currentRole = "spectator";
+      }
+
+      roleSelect.value = currentRole;
+
+      function titleCase(value) {
+        return value.charAt(0).toUpperCase() + value.slice(1);
+      }
+
+      function generateRoomId() {
+        const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        const values = new Uint32Array(8);
+        crypto.getRandomValues(values);
+
+        return Array.from(values, (value) => alphabet[value % alphabet.length]).join("");
+      }
+
+      function getRoomFromUrl() {
+        const params = new URLSearchParams(window.location.search);
+        const room = (params.get("room") || "").trim().toUpperCase();
+        return ROOM_PATTERN.test(room) ? room : null;
+      }
+
+      function setRoomInUrl(room) {
+        const url = new URL(window.location.href);
+        url.searchParams.set("room", room);
+        window.history.replaceState({}, "", url);
+      }
+
+      function inviteUrl() {
+        const url = new URL(window.location.href);
+        url.searchParams.set("room", currentRoom);
+        return url.toString();
+      }
+
+      function setConnection(status, text) {
+        connectionText.dataset.status = status;
+        connectionText.textContent = text;
+      }
+
+      function websocketUrl(room) {
+        if (!window.location.host) {
+          return null;
+        }
+
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        return `${protocol}//${window.location.host}/api/codenames/${room}/websocket`;
+      }
+
+      function send(message) {
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+          return;
+        }
+
+        socket.send(JSON.stringify(message));
+      }
+
+      function connect(room) {
+        const url = websocketUrl(room);
+        currentRoom = room;
+        roomCode.textContent = room;
+        copyInviteButton.disabled = false;
+        render();
+
+        if (!url) {
+          setConnection("error", "Open from Pages");
+          gameMessage.textContent = "Use a Cloudflare Pages or Wrangler dev URL.";
+          return;
+        }
+
+        clearTimeout(reconnectTimer);
+
+        if (socket) {
+          socket.close();
+        }
+
+        const connection = connectionSerial + 1;
+        connectionSerial = connection;
+        setConnection("connecting", "Connecting");
+        socket = new WebSocket(url);
+
+        socket.addEventListener("open", () => {
+          if (connection !== connectionSerial) {
+            return;
+          }
+
+          reconnectAttempts = 0;
+          setConnection("online", "Online");
+          send({ type: "join", role: currentRole });
+        });
+
+        socket.addEventListener("message", (event) => {
+          if (connection !== connectionSerial) {
+            return;
+          }
+
+          let message;
+
+          try {
+            message = JSON.parse(event.data);
+          } catch {
+            return;
+          }
+
+          if (message.type === "state") {
+            gameState = message.state;
+            playersText.textContent = `${message.players.length} connected`;
+            render();
+          }
+
+          if (message.type === "error") {
+            gameMessage.textContent = message.message;
+          }
+        });
+
+        socket.addEventListener("close", () => {
+          if (connection !== connectionSerial) {
+            return;
+          }
+
+          setConnection("offline", "Offline");
+
+          if (currentRoom) {
+            const delay = Math.min(1000 * 2 ** reconnectAttempts, 10000);
+            reconnectAttempts += 1;
+            reconnectTimer = setTimeout(() => connect(currentRoom), delay);
+          }
+        });
+
+        socket.addEventListener("error", () => {
+          if (connection !== connectionSerial) {
+            return;
+          }
+
+          setConnection("error", "Connection error");
+        });
+      }
+
+      function canReveal() {
+        return currentRole === "red-operative" || currentRole === "blue-operative";
+      }
+
+      function canControlTurn() {
+        return currentRole !== "spectator";
+      }
+
+      function revealCard(index) {
+        if (!gameState || gameState.winner || !canReveal()) {
+          return;
+        }
+
+        send({ type: "revealCard", index });
+      }
+
+      function renderCard(card, index) {
+        const button = document.createElement("button");
+        button.className = "codename-card";
+        button.type = "button";
+        button.textContent = card.word;
+
+        if (card.role) {
+          button.dataset.role = card.role;
+        }
+
+        if (card.revealed) {
+          button.classList.add("is-revealed");
+        } else if (card.role) {
+          button.classList.add("is-spymaster");
+        }
+
+        button.disabled = !canReveal() || card.revealed || Boolean(gameState.winner);
+        button.setAttribute(
+          "aria-label",
+          card.revealed && card.role
+            ? `${card.word}, revealed ${card.role}`
+            : `${card.word}, unrevealed`
+        );
+
+        button.addEventListener("click", () => revealCard(index));
+        return button;
+      }
+
+      function renderEmptyBoard() {
+        const cards = Array.from({ length: 25 }, (_, index) => {
+          const button = document.createElement("button");
+          button.className = "codename-card placeholder-card";
+          button.type = "button";
+          button.disabled = true;
+          button.textContent = index === 12 ? "Create Room" : "";
+          return button;
+        });
+
+        boardElement.replaceChildren(...cards);
+      }
+
+      function renderStatus() {
+        const redRemaining = gameState?.remaining?.red || 0;
+        const blueRemaining = gameState?.remaining?.blue || 0;
+
+        redScore.textContent = `Red ${redRemaining}`;
+        blueScore.textContent = `Blue ${blueRemaining}`;
+        redScore.classList.toggle("is-active", gameState?.activeTeam === "red" && !gameState?.winner);
+        blueScore.classList.toggle("is-active", gameState?.activeTeam === "blue" && !gameState?.winner);
+
+        if (!currentRoom) {
+          turnText.textContent = "No room";
+          gameMessage.textContent = "Create a room to start.";
+        } else if (!gameState) {
+          turnText.textContent = "Joining";
+          gameMessage.textContent = `Room ${currentRoom}`;
+        } else if (gameState.winner) {
+          turnText.textContent = `${titleCase(gameState.winner)} wins`;
+          gameMessage.textContent = "Start a new game to reshuffle the board.";
+        } else {
+          turnText.textContent = `${titleCase(gameState.activeTeam)} team`;
+          gameMessage.textContent =
+            `${titleCase(gameState.startingTeam)} started. ${titleCase(gameState.activeTeam)} is guessing.`;
+        }
+
+        endTurnButton.disabled = !gameState || Boolean(gameState.winner) || !canControlTurn();
+        newGameButton.disabled = !currentRoom || !canControlTurn();
+      }
+
+      function render() {
+        if (!gameState) {
+          renderEmptyBoard();
+        } else {
+          boardElement.replaceChildren(...gameState.cards.map(renderCard));
+        }
+
+        renderStatus();
+      }
+
+      createRoomButton.addEventListener("click", () => {
+        const room = generateRoomId();
+        gameState = null;
+        setRoomInUrl(room);
+        connect(room);
+      });
+
+      copyInviteButton.addEventListener("click", async () => {
+        if (!currentRoom) {
+          return;
+        }
+
+        try {
+          await navigator.clipboard.writeText(inviteUrl());
+          copyInviteButton.textContent = "Copied";
+        } catch {
+          copyInviteButton.textContent = "Copy failed";
+        }
+
+        setTimeout(() => {
+          copyInviteButton.textContent = "Copy Invite";
+        }, 1400);
+      });
+
+      roleSelect.addEventListener("change", () => {
+        currentRole = roleSelect.value;
+        localStorage.setItem("codenamesRole", currentRole);
+        send({ type: "setRole", role: currentRole });
+        render();
+      });
+
+      endTurnButton.addEventListener("click", () => send({ type: "endTurn" }));
+      newGameButton.addEventListener("click", () => send({ type: "newGame" }));
+
+      const initialRoom = getRoomFromUrl();
+      if (initialRoom) {
+        connect(initialRoom);
+      } else {
+        render();
+      }
+    </script>
+  </body>
+</html>
