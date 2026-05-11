@@ -14,9 +14,10 @@
   const els = {
     roomForm: document.querySelector("#roomForm"),
     createRoomButton: document.querySelector("#createRoomButton"),
-    joinRoomButton: document.querySelector("#joinRoomButton"),
     playerName: document.querySelector("#playerName"),
-    roomCode: document.querySelector("#roomCode"),
+    shareBlock: document.querySelector("#shareBlock"),
+    shareUrl: document.querySelector("#shareUrl"),
+    copyShareButton: document.querySelector("#copyShareButton"),
     teamSelect: document.querySelector("#teamSelect"),
     roleSelect: document.querySelector("#roleSelect"),
     connectionLabel: document.querySelector("#connectionLabel"),
@@ -45,15 +46,12 @@
 
     const params = new URLSearchParams(window.location.search);
     const roomParam = cleanRoomCode(params.get("room") || "");
-    if (roomParam) {
-      els.roomCode.value = roomParam;
-    }
 
     els.roomForm.addEventListener("submit", (event) => {
       event.preventDefault();
-      joinRoom(cleanRoomCode(els.roomCode.value));
+      createRoom();
     });
-    els.createRoomButton.addEventListener("click", createRoom);
+    els.copyShareButton.addEventListener("click", copyShareUrl);
     els.teamSelect.addEventListener("change", updatePlayer);
     els.roleSelect.addEventListener("change", updatePlayer);
     els.playerName.addEventListener("change", updatePlayer);
@@ -114,9 +112,10 @@
       const payload = await readJson(response);
       if (!response.ok) throw new Error(payload.error || "Room could not be created.");
 
-      els.roomCode.value = payload.roomCode;
+      const shareUrl = setUrlRoom(payload.roomCode, payload.shareUrl);
       await connect(payload.roomCode);
-      setUrlRoom(payload.roomCode);
+      setStatus("Room ready. Share the link to invite players.");
+      setShareUrl(shareUrl);
     } catch (error) {
       setStatus(error.message);
     } finally {
@@ -126,12 +125,12 @@
 
   async function joinRoom(roomCode) {
     if (!roomCode) {
-      setStatus("Enter a room code.");
+      setStatus("Open a shared room link.");
       return;
     }
 
     setBusy(true);
-    setStatus("Joining room.");
+    setStatus("Opening shared room.");
     try {
       const response = await fetch(`/api/codenames/rooms/${roomCode}/join`, {
         method: "POST",
@@ -141,8 +140,10 @@
       const payload = await readJson(response);
       if (!response.ok) throw new Error(payload.error || "Room could not be joined.");
 
+      const shareUrl = setUrlRoom(payload.roomCode, payload.shareUrl);
       await connect(payload.roomCode);
-      setUrlRoom(payload.roomCode);
+      setStatus("Joined shared room.");
+      setShareUrl(shareUrl);
     } catch (error) {
       setStatus(error.message);
     } finally {
@@ -211,10 +212,39 @@
     });
   }
 
-  function setUrlRoom(roomCode) {
-    const url = new URL(window.location.href);
+  function getRoomUrl(roomCode, fallbackUrl) {
+    if (fallbackUrl) return fallbackUrl;
+
+    const url = new URL("/codenames/", window.location.origin);
     url.searchParams.set("room", roomCode);
-    history.replaceState(null, "", url);
+    return url.toString();
+  }
+
+  function setUrlRoom(roomCode, fallbackUrl) {
+    const shareUrl = getRoomUrl(roomCode, fallbackUrl);
+    history.replaceState(null, "", shareUrl);
+    setShareUrl(shareUrl);
+    return shareUrl;
+  }
+
+  function setShareUrl(value) {
+    els.shareUrl.value = value || "";
+    els.shareBlock.hidden = !value;
+    els.copyShareButton.disabled = !value || els.createRoomButton.disabled;
+  }
+
+  async function copyShareUrl() {
+    const shareUrl = els.shareUrl.value;
+    if (!shareUrl) return;
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setStatus("Share link copied.");
+    } catch {
+      els.shareUrl.focus();
+      els.shareUrl.select();
+      setStatus(document.execCommand("copy") ? "Share link copied." : "Share link selected.");
+    }
   }
 
   function updatePlayer() {
@@ -268,7 +298,7 @@
     els.connectionLabel.classList.toggle("is-online", state.connected);
     els.connectionLabel.classList.toggle("is-offline", !state.connected);
     els.roomLabel.textContent = state.room
-      ? `${state.room.roomCode} - ${state.connected ? "Live" : "Offline"}`
+      ? `Room - ${state.connected ? "Live" : "Offline"}`
       : "No room";
   }
 
@@ -382,6 +412,6 @@
 
   function setBusy(isBusy) {
     els.createRoomButton.disabled = isBusy;
-    els.joinRoomButton.disabled = isBusy;
+    els.copyShareButton.disabled = isBusy || !els.shareUrl.value;
   }
 })();

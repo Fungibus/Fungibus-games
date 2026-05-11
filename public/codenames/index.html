@@ -32,22 +32,16 @@
             <span>Name</span>
             <input id="playerName" name="playerName" maxlength="24" autocomplete="name">
           </label>
-          <label>
-            <span>Room code</span>
-            <input
-              id="roomCode"
-              name="roomCode"
-              maxlength="8"
-              autocomplete="off"
-              autocapitalize="characters"
-              spellcheck="false"
-            >
-          </label>
-          <div class="button-row">
-            <button id="createRoomButton" type="button">Create</button>
-            <button id="joinRoomButton" type="submit">Join</button>
-          </div>
+          <button id="createRoomButton" type="submit">Create room</button>
         </form>
+
+        <div id="shareBlock" class="share-block" hidden>
+          <label>
+            <span>Share link</span>
+            <input id="shareUrl" readonly aria-label="Share link">
+          </label>
+          <button id="copyShareButton" class="secondary" type="button" disabled>Copy link</button>
+        </div>
 
         <div class="control-grid" aria-label="Player settings">
           <label>
@@ -72,7 +66,7 @@
             <span id="turnBadge" class="status">-</span>
           </div>
           <p id="clueText" class="muted-line">No clue</p>
-          <p id="statusText" class="muted-line" role="status">Create or join a room.</p>
+          <p id="statusText" class="muted-line" role="status">Create a room or open a shared link.</p>
         </div>
 
         <form id="clueForm" class="stacked-form">

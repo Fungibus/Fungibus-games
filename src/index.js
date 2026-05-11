@@ -433,7 +433,13 @@ async function createApiRoom(request, env) {
     });
 
     if (response.status !== 409) {
-      return response;
+      if (!response.ok) return response;
+
+      const payload = await readJson(response);
+      return json({
+        ...payload,
+        shareUrl: roomShareUrl(request.url, payload.roomCode || roomCode),
+      });
     }
   }
 
@@ -447,10 +453,17 @@ async function joinApiRoom(request, env, value) {
   }
 
   const player = await readJson(request);
-  return fetchRoom(env, roomCode, request.url, "join", {
+  const response = await fetchRoom(env, roomCode, request.url, "join", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ ...player, roomCode }),
+  });
+  if (!response.ok) return response;
+
+  const payload = await readJson(response);
+  return json({
+    ...payload,
+    shareUrl: roomShareUrl(request.url, payload.roomCode || roomCode),
   });
 }
 
@@ -474,6 +487,12 @@ function fetchRoom(env, roomCode, baseUrl, action, init) {
 function getRoomStub(env, roomCode) {
   const id = env.CODENAME_ROOMS.idFromName(roomCode);
   return env.CODENAME_ROOMS.get(id);
+}
+
+function roomShareUrl(baseUrl, roomCode) {
+  const url = new URL("/codenames/", baseUrl);
+  url.searchParams.set("room", roomCode);
+  return url.toString();
 }
 
 function methodNotAllowed() {
