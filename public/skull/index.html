@@ -15,91 +15,43 @@
   <body>
     <header class="game-header">
       <a class="home-link" href="/">Mini Game Projects</a>
-      <div class="room-strip" aria-live="polite">
-        <span id="connectionLabel" class="connection-dot is-offline"></span>
+      <div class="top-status" aria-live="polite">
+        <span id="connectionLabel" class="connection-dot is-offline" aria-hidden="true"></span>
         <span id="roomLabel">No room</span>
       </div>
+
+      <form id="roomForm" class="room-form">
+        <label>
+          <span>Name</span>
+          <input id="playerName" name="playerName" maxlength="24" autocomplete="name">
+        </label>
+        <button id="createRoomButton" type="submit">Create</button>
+      </form>
+
+      <div id="shareBlock" class="share-block" hidden>
+        <input id="shareUrl" readonly aria-label="Share link">
+        <button id="copyShareButton" class="secondary" type="button" disabled>Copy</button>
+      </div>
+
+      <button id="newGameButton" class="secondary" type="button">Start</button>
     </header>
 
     <main class="skull-shell">
-      <section class="table-section" aria-label="Skull table">
-        <section class="status-band" aria-label="Current game status">
-          <div>
-            <p id="phaseEyebrow" class="eyebrow">Room</p>
-            <h1 id="phaseTitle">Create a room</h1>
-            <p id="phaseCopy" class="phase-copy">Invite 3-6 players, then start the first round.</p>
-          </div>
-          <div id="scoreStrip" class="score-strip" aria-label="Score"></div>
-        </section>
-
-        <section class="table-band" aria-labelledby="table-title">
-          <div class="section-header">
-            <div>
-              <p class="eyebrow">Table</p>
-              <h2 id="table-title">Stacks</h2>
-            </div>
-            <span id="bidBadge" class="status">No bid</span>
-          </div>
-          <div id="tableGrid" class="table-grid" aria-live="polite"></div>
-        </section>
-
-        <section class="play-band" aria-labelledby="hand-title">
-          <div class="hand-panel">
-            <div class="section-header compact">
-              <p class="eyebrow">Hand</p>
-              <h2 id="hand-title">Your discs</h2>
-            </div>
-            <div id="handList" class="hand-list"></div>
-          </div>
-
-          <div class="action-panel">
-            <div class="section-header compact">
-              <p class="eyebrow">Action</p>
-              <h2 id="action-title">Waiting</h2>
-            </div>
-            <div id="actionPanel" class="action-panel-body"></div>
-          </div>
-        </section>
+      <section class="table-wrap" aria-label="Skull table">
+        <div class="table-meta" aria-live="polite">
+          <p id="phaseEyebrow">Room</p>
+          <h1 id="phaseTitle">Create a room</h1>
+          <p id="phaseCopy">Invite 3-6 players, then start.</p>
+          <span id="bidBadge">No bid</span>
+        </div>
+        <div id="tableGrid" class="table-grid" aria-live="polite"></div>
       </section>
 
-      <aside class="room-panel" aria-label="Skull room controls">
-        <div class="section-header compact">
-          <p class="eyebrow">Room</p>
-          <h2>Skull</h2>
-        </div>
-
-        <form id="roomForm" class="stacked-form">
-          <label>
-            <span>Name</span>
-            <input id="playerName" name="playerName" maxlength="24" autocomplete="name">
-          </label>
-          <button id="createRoomButton" type="submit">Create room</button>
-        </form>
-
-        <div id="shareBlock" class="share-block" hidden>
-          <label>
-            <span>Share link</span>
-            <input id="shareUrl" readonly aria-label="Share link">
-          </label>
-          <button id="copyShareButton" class="secondary" type="button" disabled>Copy link</button>
-        </div>
-
-        <div id="gameControlBlock" class="button-row">
-          <button id="newGameButton" type="button">Start game</button>
-        </div>
-
-        <section class="players-block" aria-labelledby="players-title">
-          <h2 id="players-title">Players</h2>
-          <div id="playersList" class="players-list"></div>
-        </section>
-
-        <div class="panel-block">
-          <h2>Log</h2>
-          <ol id="actionLog" class="action-log" aria-live="polite">
-            <li>Create a room or open a shared link.</li>
-          </ol>
-        </div>
-      </aside>
+      <section class="play-strip" aria-label="Your controls">
+        <div id="handList" class="hand-list" aria-label="Your discs"></div>
+        <div id="actionPanel" class="action-panel" aria-live="polite"></div>
+        <p id="noticeLine" class="notice-line" aria-live="polite">Create a room or open a shared link.</p>
+      </section>
     </main>
   </body>
 </html>

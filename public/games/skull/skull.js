@@ -7,7 +7,8 @@
     room: null,
     playerToken: getToken(),
     connected: false,
-    logEntries: ["Create a room or open a shared link."],
+    busy: false,
+    notice: "Create a room or open a shared link.",
   };
 
   const els = {
@@ -23,13 +24,11 @@
     phaseEyebrow: document.querySelector("#phaseEyebrow"),
     phaseTitle: document.querySelector("#phaseTitle"),
     phaseCopy: document.querySelector("#phaseCopy"),
-    scoreStrip: document.querySelector("#scoreStrip"),
     bidBadge: document.querySelector("#bidBadge"),
     tableGrid: document.querySelector("#tableGrid"),
     handList: document.querySelector("#handList"),
     actionPanel: document.querySelector("#actionPanel"),
-    playersList: document.querySelector("#playersList"),
-    actionLog: document.querySelector("#actionLog"),
+    noticeLine: document.querySelector("#noticeLine"),
   };
 
   boot();
@@ -96,7 +95,7 @@
 
       const shareUrl = setUrlRoom(payload.roomCode, payload.shareUrl);
       await connect(payload.roomCode);
-      setStatus("Room ready. Share the link to invite players.");
+      setStatus("Room ready.");
       setShareUrl(shareUrl);
     } catch (error) {
       setStatus(error.message);
@@ -112,7 +111,7 @@
     }
 
     setBusy(true);
-    setStatus("Opening shared room.");
+    setStatus("Opening room.");
     try {
       const response = await fetch(`/api/skull/rooms/${roomCode}/join`, {
         method: "POST",
@@ -124,7 +123,7 @@
 
       const shareUrl = setUrlRoom(payload.roomCode, payload.shareUrl);
       await connect(payload.roomCode);
-      setStatus("Joined shared room.");
+      setStatus("Joined room.");
       setShareUrl(shareUrl);
     } catch (error) {
       setStatus(error.message);
@@ -212,7 +211,7 @@
   function setShareUrl(value) {
     els.shareUrl.value = value || "";
     els.shareBlock.hidden = !value;
-    els.copyShareButton.disabled = !value || els.createRoomButton.disabled;
+    els.copyShareButton.disabled = !value || state.busy;
   }
 
   async function copyShareUrl() {
@@ -221,7 +220,7 @@
 
     try {
       await navigator.clipboard.writeText(shareUrl);
-      setStatus("Share link copied.");
+      setStatus("Link copied.");
     } catch {
       els.shareUrl.select();
       setStatus("Copy the selected link.");
@@ -246,28 +245,30 @@
   function render() {
     renderHeader();
     renderStatus();
-    renderScores();
     renderTable();
     renderHand();
     renderActionPanel();
-    renderPlayers();
-    renderLog();
+    renderNotice();
   }
 
   function renderHeader() {
+    const room = state.room;
+    const waiting = room?.status === "waiting";
+    const canStart = waiting && room.players.length >= room.minPlayers;
+
     els.connectionLabel.classList.toggle("is-online", state.connected);
     els.connectionLabel.classList.toggle("is-offline", !state.connected);
-    els.roomLabel.textContent = state.room ? `Room ${state.room.roomCode}` : "No room";
-    els.createRoomButton.disabled = Boolean(state.room) || els.createRoomButton.disabled;
-    els.newGameButton.disabled = !state.room || !state.room.isHost;
-    els.newGameButton.textContent = state.room?.status === "waiting" ? "Start game" : "Reset table";
+    els.roomLabel.textContent = room ? room.roomCode : "No room";
+    els.createRoomButton.disabled = Boolean(room) || state.busy;
+    els.newGameButton.disabled = !room || !room.isHost || (waiting && !canStart);
+    els.newGameButton.textContent = !room || waiting ? "Start" : "Reset";
     setShareUrl(els.shareUrl.value);
   }
 
   function renderStatus() {
     const room = state.room;
     if (!room) {
-      setPhase("Room", "Create a room", "Invite 3-6 players, then start the first round.");
+      setPhase("Room", "Create a room", "Invite 3-6 players, then start.");
       setBidBadge("No bid");
       return;
     }
@@ -276,39 +277,36 @@
       const needed = Math.max(0, room.minPlayers - room.players.length);
       setPhase(
         "Lobby",
-        needed ? `${needed} more player${needed === 1 ? "" : "s"} needed` : "Ready to start",
-        `${room.players.length}/${room.maxPlayers} seats filled. The host starts the game.`,
+        needed ? `${needed} more` : "Ready",
+        `${room.players.length}/${room.maxPlayers} players`,
       );
       setBidBadge("No bid");
       return;
     }
 
     if (room.status === "finished") {
-      setPhase("Finished", `${room.winner?.name || "A player"} wins`, "Reset the table to play again.");
+      setPhase("Finished", `${room.winner?.name || "A player"} wins`, "Host can reset.");
       setBidBadge("Game over");
       return;
     }
 
     const current = playerName(room.currentTurnToken);
     if (room.phase === "placement") {
-      setPhase("Round " + room.round, "Opening placement", "Each active player places one hidden disc.");
+      setPhase(`Round ${room.round}`, "Place one", "Everyone puts one disc down.");
     } else if (room.phase === "adding") {
-      setPhase("Turn", current, `${current} may add a disc or start the challenge bidding.`);
+      setPhase("Turn", current, `${current}: add a disc or bid.`);
     } else if (room.phase === "bidding") {
-      setPhase("Bidding", current, `${current} must raise the bid or pass.`);
+      setPhase("Bid", current, `${current}: raise or pass.`);
     } else if (room.phase === "revealing") {
-      setPhase(
-        "Challenge",
-        room.attempt?.challengerName || current,
-        `Reveal ${room.attempt?.remaining || 0} more flower disc${room.attempt?.remaining === 1 ? "" : "s"}.`,
-      );
+      const remaining = room.attempt?.remaining || 0;
+      setPhase("Reveal", room.attempt?.challengerName || current, `${remaining} left.`);
     } else if (room.phase === "choosing_loss") {
-      setPhase("Penalty", room.loss?.chooserName || current, "Choose one of the challenger's discs to lose.");
+      setPhase("Lose one", room.loss?.chooserName || current, "Choose a disc to discard.");
     } else if (room.phase === "choosing_starter") {
-      setPhase("Next round", current, `${current} chooses who starts the next round.`);
+      setPhase("Next", current, "Choose the starter.");
     }
 
-    setBidBadge(room.bid ? `${room.bid.playerName} bid ${room.bid.count}/${room.totalDiscs}` : "No bid");
+    setBidBadge(room.bid ? `${room.bid.count}/${room.totalDiscs} by ${room.bid.playerName}` : "No bid");
   }
 
   function setPhase(eyebrow, title, copy) {
@@ -321,61 +319,19 @@
     els.bidBadge.textContent = text;
   }
 
-  function renderScores() {
-    const players = state.room?.players || [];
-    if (!players.length) {
-      els.scoreStrip.innerHTML = `<p class="muted-note">No players seated.</p>`;
-      return;
-    }
-
-    els.scoreStrip.innerHTML = players
-      .map(
-        (player) => `
-          <div class="score-pill">
-            <span>${escapeHtml(player.name)}</span>
-            <span class="win-track" aria-label="${player.wins} wins">
-              ${[0, 1]
-                .map((index) => `<span class="win-mark ${index < player.wins ? "is-filled" : ""}"></span>`)
-                .join("")}
-            </span>
-          </div>
-        `,
-      )
-      .join("");
-  }
-
   function renderTable() {
     const room = state.room;
     const players = room?.players || [];
+
+    els.tableGrid.className = `table-grid players-${Math.max(players.length, 0)}`;
+
     if (!players.length) {
-      els.tableGrid.innerHTML = `<p class="muted-note">Create or join a room to take a seat.</p>`;
+      els.tableGrid.innerHTML = `<p class="empty-table">Create or join a room.</p>`;
       return;
     }
 
     els.tableGrid.innerHTML = players
-      .map((player) => {
-        const tags = seatTags(player).map((tag) => `<span class="${tag.className}">${tag.label}</span>`).join("");
-        const stack = player.stack.length
-          ? player.stack.map((disc) => discHtml(disc.kind, { hidden: !disc.revealed })).join("")
-          : `<p class="muted-note">No discs down.</p>`;
-        const flipButton = canFlip(player)
-          ? `<button class="secondary" type="button" data-flip="${escapeAttribute(player.token)}">Flip top</button>`
-          : "";
-
-        return `
-          <article class="player-seat ${player.isCurrentTurn ? "is-current" : ""} ${
-            player.eliminated ? "is-eliminated" : ""
-          }">
-            <div class="seat-head">
-              <div class="seat-name">${escapeHtml(player.name)}</div>
-              <div class="seat-meta">${tags}</div>
-            </div>
-            <div class="stack-row">${stack}</div>
-            <p class="stack-count">${player.stackCount} on table, ${player.handCount} in hand</p>
-            ${flipButton}
-          </article>
-        `;
-      })
+      .map((player, index) => seatHtml(player, seatPosition(index, players.length)))
       .join("");
 
     els.tableGrid.querySelectorAll("[data-flip]").forEach((button) => {
@@ -385,31 +341,85 @@
     });
   }
 
-  function seatTags(player) {
-    const tags = [];
-    if (player.token === state.playerToken) tags.push({ label: "You", className: "seat-tag is-active" });
-    if (player.isFirstPlayer) tags.push({ label: "First", className: "seat-tag is-active" });
-    if (player.isCurrentTurn) tags.push({ label: "Turn", className: "seat-tag is-active" });
-    if (player.isBidder) tags.push({ label: "Bidder", className: "seat-tag is-active" });
-    if (player.hasPassed) tags.push({ label: "Passed", className: "seat-tag" });
-    if (player.eliminated) tags.push({ label: "Out", className: "seat-tag is-danger" });
-    if (!player.connected) tags.push({ label: "Away", className: "seat-tag" });
-    return tags;
+  function seatPosition(index, total) {
+    const radius = total <= 3 ? 31 : total === 4 ? 34 : 37;
+    const angle = -90 + (360 / Math.max(total, 1)) * index;
+    const radians = (angle * Math.PI) / 180;
+    return {
+      left: 50 + Math.cos(radians) * radius,
+      top: 50 + Math.sin(radians) * radius,
+    };
+  }
+
+  function seatHtml(player, position) {
+    const classes = [
+      "player-seat",
+      player.token === state.playerToken ? "is-you" : "",
+      player.isCurrentTurn ? "is-current" : "",
+      player.isBidder ? "is-bidder" : "",
+      player.hasPassed ? "has-passed" : "",
+      player.eliminated ? "is-eliminated" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    const stateMarks = [
+      player.isFirstPlayer ? "first" : "",
+      player.hasPassed ? "pass" : "",
+      !player.connected ? "away" : "",
+      player.eliminated ? "out" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    const stack = stackHtml(player);
+
+    return `
+      <article class="${classes}" style="left:${position.left.toFixed(3)}%; top:${position.top.toFixed(
+        3,
+      )}%;">
+        <div class="seat-top">
+          <span class="seat-name">${escapeHtml(player.name)}</span>
+          <span class="win-track" aria-label="${player.wins} wins">
+            ${[0, 1].map((index) => `<span class="${index < player.wins ? "won" : ""}"></span>`).join("")}
+          </span>
+        </div>
+        ${stack}
+        <div class="seat-foot">
+          <span>${player.stackCount}/${player.handCount + player.stackCount}</span>
+          <span>${stateMarks}</span>
+        </div>
+      </article>
+    `;
+  }
+
+  function stackHtml(player) {
+    const discs = player.stack.length
+      ? player.stack.map((disc, index) => discHtml(disc.kind, { hidden: !disc.revealed, index })).join("")
+      : `<span class="empty-stack"></span>`;
+
+    if (!canFlip(player)) {
+      return `<div class="stack" aria-label="${escapeAttribute(player.name)} stack">${discs}</div>`;
+    }
+
+    return `
+      <button class="stack can-flip" type="button" data-flip="${escapeAttribute(
+        player.token,
+      )}" aria-label="Reveal ${escapeAttribute(player.name)} top disc">
+        ${discs}
+      </button>
+    `;
   }
 
   function renderHand() {
     const room = state.room;
     const hand = room?.hand || [];
-    if (!room) {
-      els.handList.innerHTML = `<p class="muted-note">Your private hand appears after the game starts.</p>`;
+
+    if (!room || room.status === "waiting") {
+      els.handList.innerHTML = `<span class="strip-note">Hand appears after start.</span>`;
       return;
     }
-    if (room.status === "waiting") {
-      els.handList.innerHTML = `<p class="muted-note">Hands are dealt when the host starts the game.</p>`;
-      return;
-    }
+
     if (!hand.length) {
-      els.handList.innerHTML = `<p class="muted-note">No discs in hand.</p>`;
+      els.handList.innerHTML = `<span class="strip-note">No hand discs.</span>`;
       return;
     }
 
@@ -423,7 +433,7 @@
             data-card-id="${escapeAttribute(disc.id)}"
             ${playable ? "" : "disabled"}
             aria-label="Play ${disc.kind}"
-          >${disc.kind === "skull" ? "S" : "F"}</button>
+          ></button>
         `,
       )
       .join("");
@@ -437,25 +447,28 @@
 
   function renderActionPanel() {
     const room = state.room;
+
     if (!room) {
-      els.actionPanel.innerHTML = `<p class="muted-note">Create a room or open a shared link.</p>`;
+      els.actionPanel.innerHTML = `<span class="strip-note">Create or join.</span>`;
       return;
     }
+
     if (room.status === "waiting") {
       els.actionPanel.innerHTML = room.isHost
-        ? `<p class="muted-note">Start is enabled at ${room.minPlayers} players.</p>`
-        : `<p class="muted-note">Waiting for the host.</p>`;
+        ? `<span class="strip-note">Start at ${room.minPlayers} players.</span>`
+        : `<span class="strip-note">Waiting for host.</span>`;
       return;
     }
+
     if (room.status === "finished") {
-      els.actionPanel.innerHTML = `<p class="muted-note">The host can reset the table.</p>`;
+      els.actionPanel.innerHTML = `<span class="strip-note">Game over.</span>`;
       return;
     }
 
     if (room.phase === "placement") {
       els.actionPanel.innerHTML = canPlayDisc()
-        ? `<p class="muted-note">Choose one disc from your hand to place face down.</p>`
-        : `<p class="muted-note">Waiting for opening placements.</p>`;
+        ? `<span class="strip-note">Choose a disc.</span>`
+        : `<span class="strip-note">Waiting for placements.</span>`;
       return;
     }
 
@@ -471,8 +484,8 @@
 
     if (room.phase === "revealing") {
       els.actionPanel.innerHTML = isMyTurn()
-        ? `<p class="muted-note">Flip your own stack first, then choose opponent stacks until the bid is met.</p>`
-        : `<p class="muted-note">Waiting for ${escapeHtml(room.attempt?.challengerName || "the challenger")}.</p>`;
+        ? `<span class="strip-note">Reveal your stack first.</span>`
+        : `<span class="strip-note">Waiting for ${escapeHtml(room.attempt?.challengerName || "challenger")}.</span>`;
       return;
     }
 
@@ -488,13 +501,14 @@
 
   function renderAddingPanel(room) {
     if (!isMyTurn()) {
-      els.actionPanel.innerHTML = `<p class="muted-note">Waiting for ${escapeHtml(playerName(room.currentTurnToken))}.</p>`;
+      els.actionPanel.innerHTML = `<span class="strip-note">Waiting for ${escapeHtml(
+        playerName(room.currentTurnToken),
+      )}.</span>`;
       return;
     }
 
-    const canAdd = (room.hand || []).length > 0;
     els.actionPanel.innerHTML = `
-      <p class="muted-note">${canAdd ? "Add a disc from your hand or begin bidding." : "No hand discs remain; start bidding."}</p>
+      <span class="strip-note">${room.hand.length ? "Add or bid." : "Bid."}</span>
       ${bidFormHtml("start_bid", (room.bid?.count || 0) + 1, room.totalDiscs, "Bid")}
     `;
     bindBidForm();
@@ -502,22 +516,18 @@
 
   function renderBiddingPanel(room) {
     if (!isMyTurn()) {
-      els.actionPanel.innerHTML = `<p class="muted-note">Waiting for ${escapeHtml(playerName(room.currentTurnToken))}.</p>`;
+      els.actionPanel.innerHTML = `<span class="strip-note">Waiting for ${escapeHtml(
+        playerName(room.currentTurnToken),
+      )}.</span>`;
       return;
     }
 
     const nextBid = (room.bid?.count || 0) + 1;
     const canRaise = nextBid <= room.totalDiscs && room.bid?.playerToken !== state.playerToken;
     els.actionPanel.innerHTML = `
-      <p class="muted-note">Current bid: ${room.bid?.count || 0} of ${room.totalDiscs} discs.</p>
-      ${
-        canRaise
-          ? bidFormHtml("raise_bid", nextBid, room.totalDiscs, "Raise")
-          : `<p class="danger-note">The bid cannot be raised.</p>`
-      }
-      <div class="inline-actions">
-        <button class="secondary" type="button" data-pass>Pass</button>
-      </div>
+      <span class="strip-note">Bid ${room.bid?.count || 0}/${room.totalDiscs}</span>
+      ${canRaise ? bidFormHtml("raise_bid", nextBid, room.totalDiscs, "Raise") : ""}
+      <button class="secondary" type="button" data-pass>Pass</button>
     `;
     bindBidForm();
     els.actionPanel.querySelector("[data-pass]")?.addEventListener("click", () => {
@@ -528,23 +538,26 @@
   function renderLossPanel(room) {
     const loss = room.loss;
     if (!loss) {
-      els.actionPanel.innerHTML = `<p class="muted-note">Resolving the challenge.</p>`;
+      els.actionPanel.innerHTML = `<span class="strip-note">Resolving.</span>`;
       return;
     }
+
     if (loss.chooserToken !== state.playerToken) {
-      els.actionPanel.innerHTML = `<p class="muted-note">Waiting for ${escapeHtml(loss.chooserName)} to choose a lost disc.</p>`;
+      els.actionPanel.innerHTML = `<span class="strip-note">Waiting for ${escapeHtml(
+        loss.chooserName,
+      )}.</span>`;
       return;
     }
 
     els.actionPanel.innerHTML = `
-      <p class="muted-note">Choose one disc for ${escapeHtml(loss.challengerName)} to lose.</p>
+      <span class="strip-note">${escapeHtml(loss.challengerName)} loses one.</span>
       <div class="loss-options">
         ${loss.options
           .map(
             (option, index) => `
               <button class="disc ${option.kind ? `is-${option.kind}` : "is-hidden"}" type="button" data-loss="${escapeAttribute(
                 option.id,
-              )}" aria-label="Choose disc ${index + 1}">${option.kind === "skull" ? "S" : option.kind === "flower" ? "F" : "?"}</button>
+              )}" aria-label="Choose disc ${index + 1}"></button>
             `,
           )
           .join("")}
@@ -559,12 +572,14 @@
 
   function renderStarterPanel(room) {
     if (!isMyTurn()) {
-      els.actionPanel.innerHTML = `<p class="muted-note">Waiting for ${escapeHtml(playerName(room.currentTurnToken))}.</p>`;
+      els.actionPanel.innerHTML = `<span class="strip-note">Waiting for ${escapeHtml(
+        playerName(room.currentTurnToken),
+      )}.</span>`;
       return;
     }
 
     els.actionPanel.innerHTML = `
-      <p class="muted-note">Choose who starts the next round.</p>
+      <span class="strip-note">Starter:</span>
       <div class="starter-options">
         ${room.players
           .filter((player) => !player.eliminated)
@@ -588,11 +603,7 @@
   function bidFormHtml(action, min, max, label) {
     return `
       <form class="bid-form" data-bid-form="${action}">
-        <label>
-          <span>Bid</span>
-          <input name="bid" type="number" min="${min}" max="${max}" value="${min}">
-        </label>
-        <p class="muted-note">Maximum: ${max}</p>
+        <input name="bid" aria-label="Bid" type="number" min="${min}" max="${max}" value="${min}">
         <button type="submit">${label}</button>
       </form>
     `;
@@ -610,28 +621,8 @@
     });
   }
 
-  function renderPlayers() {
-    const players = state.room?.players || [];
-    if (!players.length) {
-      els.playersList.innerHTML = `<p class="muted-note">No players yet.</p>`;
-      return;
-    }
-
-    els.playersList.innerHTML = players
-      .map(
-        (player) => `
-          <div class="player-line">
-            <span class="player-line-name">${escapeHtml(player.name)}${player.token === state.playerToken ? " (you)" : ""}</span>
-            <span class="player-line-meta">${player.eliminated ? "Out" : `${player.handCount + player.stackCount} discs`}</span>
-          </div>
-        `,
-      )
-      .join("");
-  }
-
-  function renderLog() {
-    const entries = state.room?.history?.length ? state.room.history : state.logEntries;
-    els.actionLog.innerHTML = entries.map((entry) => `<li>${escapeHtml(entry)}</li>`).join("");
+  function renderNotice() {
+    els.noticeLine.textContent = state.notice;
   }
 
   function canPlayDisc() {
@@ -665,25 +656,26 @@
 
   function discHtml(kind, options = {}) {
     const hidden = options.hidden || !kind;
-    const label = hidden ? "?" : kind === "skull" ? "S" : "F";
-    return `<span class="disc ${hidden ? "is-hidden" : `is-${kind}`}">${label}</span>`;
+    const style = Number.isInteger(options.index) ? ` style="--i:${options.index}"` : "";
+    return `<span class="disc ${hidden ? "is-hidden" : `is-${kind}`}"${style}></span>`;
   }
 
   function setBusy(isBusy) {
+    state.busy = isBusy;
     els.createRoomButton.disabled = isBusy || Boolean(state.room);
     els.copyShareButton.disabled = isBusy || !els.shareUrl.value;
   }
 
   function setStatus(message) {
     if (!message) return;
-    state.logEntries = [message, ...state.logEntries].slice(0, 8);
-    renderLog();
+    state.notice = message;
+    renderNotice();
   }
 
   function logRoomChanges(previous, next) {
     if (!previous || !next) return;
     if (previous.status !== "finished" && next.status === "finished" && next.winner) {
-      setStatus(`${next.winner.name} won the game.`);
+      setStatus(`${next.winner.name} won.`);
     }
   }
 
