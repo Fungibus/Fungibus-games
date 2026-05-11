@@ -245,15 +245,23 @@
     }
     if (!configured || isPlaceholderApiOrigin(configured)) return "";
 
-    try {
-      return new URL(configured).origin;
-    } catch {
-      return "";
-    }
+    return normalizeApiOrigin(configured);
   }
 
   function isPlaceholderApiOrigin(value) {
-    return value.includes("derekyi2001");
+    return /<[^>]+>|workers-dev-subdomain/i.test(value);
+  }
+
+  function normalizeApiOrigin(value) {
+    try {
+      return new URL(value).origin;
+    } catch {
+      try {
+        return new URL(`https://${value}`).origin;
+      } catch {
+        return "";
+      }
+    }
   }
 
   function isLocalFrontend() {
