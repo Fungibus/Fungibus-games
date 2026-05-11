@@ -1,8 +1,6 @@
 (() => {
   const TOKEN_KEY = "codename-grid-player-token";
   const NAME_KEY = "codename-grid-player-name";
-  const TEAM_KEY = "codename-grid-team";
-  const ROLE_KEY = "codename-grid-role";
 
   const state = {
     socket: null,
@@ -18,8 +16,8 @@
     shareBlock: document.querySelector("#shareBlock"),
     shareUrl: document.querySelector("#shareUrl"),
     copyShareButton: document.querySelector("#copyShareButton"),
-    teamSelect: document.querySelector("#teamSelect"),
-    roleSelect: document.querySelector("#roleSelect"),
+    teamButtons: [...document.querySelectorAll("[data-team-button]")],
+    spymasterButtons: [...document.querySelectorAll("[data-spymaster-button]")],
     connectionLabel: document.querySelector("#connectionLabel"),
     roomLabel: document.querySelector("#roomLabel"),
     turnBadge: document.querySelector("#turnBadge"),
@@ -30,7 +28,7 @@
     clueCount: document.querySelector("#clueCount"),
     endTurnButton: document.querySelector("#endTurnButton"),
     newBoardButton: document.querySelector("#newBoardButton"),
-    playersList: document.querySelector("#playersList"),
+    teamsList: document.querySelector("#teamsList"),
     redScore: document.querySelector("#redScore"),
     blueScore: document.querySelector("#blueScore"),
     boardGrid: document.querySelector("#boardGrid"),
@@ -41,8 +39,6 @@
   function boot() {
     els.playerName.value =
       localStorage.getItem(NAME_KEY) || `Player ${state.playerToken.slice(0, 4)}`;
-    els.teamSelect.value = localStorage.getItem(TEAM_KEY) || "red";
-    els.roleSelect.value = localStorage.getItem(ROLE_KEY) || "operative";
 
     const params = new URLSearchParams(window.location.search);
     const roomParam = cleanRoomCode(params.get("room") || "");
@@ -52,8 +48,12 @@
       createRoom();
     });
     els.copyShareButton.addEventListener("click", copyShareUrl);
-    els.teamSelect.addEventListener("change", updatePlayer);
-    els.roleSelect.addEventListener("change", updatePlayer);
+    els.teamButtons.forEach((button) => {
+      button.addEventListener("click", () => setPlayerTeam(button.dataset.teamButton));
+    });
+    els.spymasterButtons.forEach((button) => {
+      button.addEventListener("click", () => setPlayerSpymaster(button.dataset.spymasterButton));
+    });
     els.playerName.addEventListener("change", updatePlayer);
     els.clueForm.addEventListener("submit", submitClue);
     els.endTurnButton.addEventListener("click", () => send({ type: "end_turn" }));
@@ -85,18 +85,25 @@
 
   function playerPayload() {
     const name = els.playerName.value.trim().slice(0, 24) || "Player";
-    const team = els.teamSelect.value === "blue" ? "blue" : "red";
-    const role = els.roleSelect.value === "spymaster" ? "spymaster" : "operative";
 
     localStorage.setItem(NAME_KEY, name);
-    localStorage.setItem(TEAM_KEY, team);
-    localStorage.setItem(ROLE_KEY, role);
 
     return {
       playerToken: state.playerToken,
       name,
-      team,
-      role,
+      team: state.room?.you?.team || null,
+      role: state.room?.you?.role || "operative",
+    };
+  }
+
+  function registrationPayload() {
+    const name = els.playerName.value.trim().slice(0, 24) || "Player";
+    localStorage.setItem(NAME_KEY, name);
+    return {
+      playerToken: state.playerToken,
+      name,
+      team: null,
+      role: "operative",
     };
   }
 
@@ -107,7 +114,7 @@
       const response = await fetch("/api/codenames/rooms", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(playerPayload()),
+        body: JSON.stringify(registrationPayload()),
       });
       const payload = await readJson(response);
       if (!response.ok) throw new Error(payload.error || "Room could not be created.");
@@ -135,7 +142,7 @@
       const response = await fetch(`/api/codenames/rooms/${roomCode}/join`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(playerPayload()),
+        body: JSON.stringify(registrationPayload()),
       });
       const payload = await readJson(response);
       if (!response.ok) throw new Error(payload.error || "Room could not be joined.");
@@ -182,7 +189,6 @@
         state.connected = true;
         setStatus("Connected.");
         renderConnection();
-        updatePlayer();
         resolve();
       });
 
@@ -249,9 +255,29 @@
 
   function updatePlayer() {
     const payload = playerPayload();
-    if (state.socket?.readyState === WebSocket.OPEN) {
+    if (state.room?.you && state.socket?.readyState === WebSocket.OPEN) {
       send({ type: "set_player", ...payload });
     }
+  }
+
+  function setPlayerTeam(team) {
+    if (!isTeam(team)) return;
+    setPlayerAssignment(team, "operative");
+  }
+
+  function setPlayerSpymaster(team) {
+    if (!isTeam(team)) return;
+    setPlayerAssignment(team, "spymaster");
+  }
+
+  function setPlayerAssignment(team, role) {
+    const name = els.playerName.value.trim().slice(0, 24) || "Player";
+    localStorage.setItem(NAME_KEY, name);
+    if (state.socket?.readyState === WebSocket.OPEN) {
+      send({ type: "set_player", name, team, role });
+      return;
+    }
+    setStatus("Create or join a room before choosing a team.");
   }
 
   function submitClue(event) {
@@ -280,17 +306,14 @@
     if (document.activeElement !== els.playerName) {
       els.playerName.value = you.name;
     }
-    els.teamSelect.value = you.team;
-    els.roleSelect.value = you.role;
     localStorage.setItem(NAME_KEY, you.name);
-    localStorage.setItem(TEAM_KEY, you.team);
-    localStorage.setItem(ROLE_KEY, you.role);
   }
 
   function render() {
     renderConnection();
     renderRoomInfo();
-    renderPlayers();
+    renderTeamControls();
+    renderTeams();
     renderBoard();
   }
 
@@ -318,6 +341,7 @@
       });
       els.endTurnButton.disabled = true;
       els.newBoardButton.disabled = true;
+      renderTeamControls();
       return;
     }
 
@@ -341,21 +365,82 @@
     els.newBoardButton.disabled = !state.connected;
   }
 
-  function renderPlayers() {
+  function renderTeamControls() {
+    const you = state.room?.you;
     const players = state.room?.players || [];
-    els.playersList.replaceChildren(
-      ...players.map((player) => {
-        const item = document.createElement("li");
-        item.className = "player-item";
-        item.dataset.team = player.team;
-        const name = document.createElement("span");
-        name.textContent = player.name;
-        const meta = document.createElement("span");
-        meta.textContent = `${player.team} ${player.role}${player.connected ? "" : " offline"}`;
-        item.append(name, meta);
-        return item;
+    const occupiedSpymasters = new Map(
+      players
+        .filter((player) => player.role === "spymaster" && isTeam(player.team))
+        .map((player) => [player.team, player.name]),
+    );
+
+    els.teamButtons.forEach((button) => {
+      const team = button.dataset.teamButton;
+      button.classList.toggle("is-active", you?.team === team && you?.role !== "spymaster");
+      button.disabled = !state.connected || !state.room;
+      button.setAttribute("aria-pressed", String(you?.team === team && you?.role !== "spymaster"));
+    });
+
+    els.spymasterButtons.forEach((button) => {
+      const team = button.dataset.spymasterButton;
+      const isCurrentUser = you?.team === team && you?.role === "spymaster";
+      const isOccupied = occupiedSpymasters.has(team) && !isCurrentUser;
+      button.classList.toggle("is-active", isCurrentUser);
+      button.disabled = !state.connected || !state.room || isOccupied;
+      button.title = isOccupied ? `${occupiedSpymasters.get(team)} is ${team} spymaster` : "";
+      button.setAttribute("aria-pressed", String(isCurrentUser));
+    });
+  }
+
+  function renderTeams() {
+    const players = state.room?.players || [];
+    const groups = [
+      ["red", "Red team"],
+      ["blue", "Blue team"],
+      [null, "Unassigned"],
+    ];
+
+    els.teamsList.replaceChildren(
+      ...groups.map(([team, label]) => {
+        const group = document.createElement("section");
+        group.className = "team-group";
+        if (team) group.dataset.team = team;
+
+        const heading = document.createElement("h3");
+        heading.textContent = label;
+
+        const list = document.createElement("ul");
+        list.className = "players-list";
+
+        const teamPlayers = players.filter((player) =>
+          team ? player.team === team : !player.team,
+        );
+        if (teamPlayers.length) {
+          list.replaceChildren(...teamPlayers.map(renderPlayerItem));
+        } else {
+          const empty = document.createElement("li");
+          empty.className = "player-item is-empty";
+          empty.textContent = "No players";
+          list.append(empty);
+        }
+
+        group.append(heading, list);
+        return group;
       }),
     );
+  }
+
+  function renderPlayerItem(player) {
+    const item = document.createElement("li");
+    item.className = "player-item";
+    item.dataset.team = player.team || "unassigned";
+    const name = document.createElement("span");
+    name.textContent = player.name;
+    const meta = document.createElement("span");
+    const role = player.role === "spymaster" ? "spymaster" : "operative";
+    meta.textContent = `${role}${player.connected ? "" : " offline"}`;
+    item.append(name, meta);
+    return item;
   }
 
   function renderBoard() {
@@ -413,5 +498,9 @@
   function setBusy(isBusy) {
     els.createRoomButton.disabled = isBusy;
     els.copyShareButton.disabled = isBusy || !els.shareUrl.value;
+  }
+
+  function isTeam(team) {
+    return team === "red" || team === "blue";
   }
 })();

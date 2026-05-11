@@ -43,21 +43,11 @@
           <button id="copyShareButton" class="secondary" type="button" disabled>Copy link</button>
         </div>
 
-        <div class="control-grid" aria-label="Player settings">
-          <label>
-            <span>Team</span>
-            <select id="teamSelect">
-              <option value="red">Red</option>
-              <option value="blue">Blue</option>
-            </select>
-          </label>
-          <label>
-            <span>Role</span>
-            <select id="roleSelect">
-              <option value="operative">Operative</option>
-              <option value="spymaster">Spymaster</option>
-            </select>
-          </label>
+        <div class="team-controls" aria-label="Player settings">
+          <button class="secondary" type="button" data-team-button="red">Red Team</button>
+          <button class="secondary" type="button" data-team-button="blue">Blue Team</button>
+          <button class="secondary" type="button" data-spymaster-button="red">Red Spymaster</button>
+          <button class="secondary" type="button" data-spymaster-button="blue">Blue Spymaster</button>
         </div>
 
         <div class="panel-block">
@@ -69,35 +59,18 @@
           <p id="statusText" class="muted-line" role="status">Create a room or open a shared link.</p>
         </div>
 
-        <form id="clueForm" class="stacked-form clue-form">
-          <label>
-            <span>Clue</span>
-            <input id="clueWord" maxlength="24" autocomplete="off" spellcheck="false">
-          </label>
-          <label>
-            <span>Count</span>
-            <input id="clueCount" type="number" min="0" max="9" value="1">
-          </label>
-          <button type="submit">Send clue</button>
-        </form>
-
         <div class="button-row">
-          <button id="endTurnButton" type="button">End turn</button>
           <button id="newBoardButton" type="button">Start</button>
         </div>
 
-        <section class="players-block" aria-labelledby="players-title">
-          <h2 id="players-title">Players</h2>
-          <ul id="playersList" class="players-list"></ul>
+        <section class="players-block" aria-labelledby="teams-title">
+          <h2 id="teams-title">Teams</h2>
+          <div id="teamsList" class="teams-list"></div>
         </section>
       </section>
 
-      <section class="board-section" aria-labelledby="board-title">
+      <section class="board-section" aria-label="Board">
         <div class="board-topline">
-          <div>
-            <p class="eyebrow">Board</p>
-            <h2 id="board-title">Twenty-five words</h2>
-          </div>
           <div class="score-strip" aria-label="Remaining cards">
             <span id="redScore">Red -</span>
             <span id="blueScore">Blue -</span>
@@ -105,6 +78,18 @@
         </div>
 
         <div id="boardGrid" class="board-grid" aria-live="polite"></div>
+        <form id="clueForm" class="clue-form">
+          <label class="clue-word-field">
+            <span>Clue</span>
+            <input id="clueWord" maxlength="24" autocomplete="off" spellcheck="false">
+          </label>
+          <label class="clue-count-field">
+            <span>Count</span>
+            <input id="clueCount" type="number" min="0" max="9" value="1">
+          </label>
+          <button type="submit">Send clue</button>
+          <button id="endTurnButton" class="secondary" type="button">End turn</button>
+        </form>
       </section>
     </main>
   </body>

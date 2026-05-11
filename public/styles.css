@@ -330,11 +330,35 @@ h3 {
 }
 
 .control-grid,
-.button-row {
+.button-row,
+.team-controls {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.7rem;
   margin-top: 1rem;
+}
+
+.button-row {
+  grid-template-columns: 1fr;
+}
+
+.team-controls button {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.team-controls button[data-team-button="red"].is-active,
+.team-controls button[data-spymaster-button="red"].is-active {
+  border-color: rgba(184, 74, 64, 0.48);
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.team-controls button[data-team-button="blue"].is-active,
+.team-controls button[data-spymaster-button="blue"].is-active {
+  border-color: rgba(55, 111, 166, 0.48);
+  background: var(--blue-soft);
+  color: var(--blue);
 }
 
 .muted-line {
@@ -344,6 +368,24 @@ h3 {
 
 .players-block h2 {
   font-size: 1rem;
+}
+
+.teams-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.team-group {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.team-group h3 {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 
 .players-list {
@@ -391,6 +433,17 @@ h3 {
   border-color: rgba(55, 111, 166, 0.28);
 }
 
+.player-item[data-team="unassigned"],
+.player-item.is-empty {
+  border-color: rgba(98, 103, 96, 0.22);
+}
+
+.player-item.is-empty {
+  justify-content: center;
+  color: var(--muted);
+  font-weight: 700;
+}
+
 .board-section {
   min-width: 0;
 }
@@ -398,11 +451,9 @@ h3 {
 .board-topline {
   display: flex;
   align-items: end;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 1rem;
-  margin-bottom: 1rem;
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 1rem;
+  margin-bottom: 0.6rem;
 }
 
 .score-strip {
@@ -499,6 +550,18 @@ h3 {
   color: var(--text);
 }
 
+.clue-form {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) 5rem auto auto;
+  align-items: end;
+  gap: 0.7rem;
+  margin-top: 0.85rem;
+}
+
+.clue-count-field input {
+  text-align: center;
+}
+
 @media (min-width: 981px) {
   .game-header {
     min-height: 3.1rem;
@@ -574,24 +637,20 @@ h3 {
   }
 
   .control-grid,
-  .button-row {
+  .button-row,
+  .team-controls {
     gap: 0.5rem;
     margin-top: 0.65rem;
   }
 
   #roomForm,
-  .share-block,
-  .clue-form {
+  .share-block {
     align-items: end;
   }
 
   #roomForm,
   .share-block {
     grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .clue-form {
-    grid-template-columns: minmax(0, 1fr) 4.25rem auto;
   }
 
   .panel-block {
@@ -616,8 +675,20 @@ h3 {
 
   .players-list {
     gap: 0.35rem;
+  }
+
+  .teams-list {
+    gap: 0.55rem;
     max-height: 7.5rem;
     overflow: auto;
+  }
+
+  .team-group {
+    gap: 0.3rem;
+  }
+
+  .team-group h3 {
+    font-size: 0.66rem;
   }
 
   .player-item {
@@ -631,17 +702,7 @@ h3 {
   }
 
   .board-topline {
-    margin-bottom: 0.7rem;
-    padding-bottom: 0.7rem;
-  }
-
-  .board-topline .eyebrow {
-    margin-bottom: 0.25rem;
-    font-size: 0.7rem;
-  }
-
-  .board-topline h2 {
-    font-size: clamp(1.25rem, 2vw, 1.65rem);
+    margin-bottom: 0.45rem;
   }
 
   .score-strip {
@@ -669,6 +730,12 @@ h3 {
   .card-kind {
     margin-top: 0.25rem;
     font-size: 0.58rem;
+  }
+
+  .clue-form {
+    grid-template-columns: minmax(10rem, 1fr) 4.25rem auto auto;
+    gap: 0.5rem;
+    margin-top: 0.65rem;
   }
 }
 
@@ -718,13 +785,8 @@ h3 {
     padding-top: 1rem;
   }
 
-  .board-topline {
-    display: block;
-  }
-
   .score-strip {
     justify-content: flex-start;
-    margin-top: 0.75rem;
   }
 
   .board-grid {
@@ -738,5 +800,13 @@ h3 {
 
   .card-kind {
     display: none;
+  }
+
+  .clue-form {
+    grid-template-columns: minmax(0, 1fr) 4.5rem;
+  }
+
+  .clue-form button {
+    width: 100%;
   }
 }

@@ -194,7 +194,7 @@ export class CodenameRoom extends DurableObject {
       room.players.push({
         token: playerToken,
         name: `Player ${playerToken.slice(0, 4)}`,
-        team: smallerTeam(room),
+        team: null,
         role: "operative",
       });
       await this.saveRoom(room);
@@ -265,6 +265,7 @@ export class CodenameRoom extends DurableObject {
         team: action.team,
         role: action.role,
       });
+      ensureSpymasterAvailable(room, updated);
       Object.assign(player, updated);
       room.updatedAt = Date.now();
       return true;
@@ -585,7 +586,12 @@ function remaining(room) {
 function upsertPlayer(room, player) {
   const existing = room.players.find((item) => item.token === player.token);
   if (existing) {
-    Object.assign(existing, player);
+    const updated =
+      player.team === null && player.role === "operative"
+        ? { ...existing, name: player.name }
+        : player;
+    ensureSpymasterAvailable(room, updated);
+    Object.assign(existing, updated);
     return;
   }
 
@@ -593,18 +599,21 @@ function upsertPlayer(room, player) {
     throw new Error("Room is full.");
   }
 
+  ensureSpymasterAvailable(room, player);
   room.players.push(player);
 }
 
 function normalizePlayer(payload) {
   const token = String(payload.playerToken || payload.token || "").slice(0, 80);
   if (!token) return null;
+  const team = payload.team === "red" || payload.team === "blue" ? payload.team : null;
+  const role = team && payload.role === "spymaster" ? "spymaster" : "operative";
 
   return {
     token,
     name: String(payload.name || "Player").trim().slice(0, 24) || "Player",
-    team: payload.team === "blue" ? "blue" : "red",
-    role: payload.role === "spymaster" ? "spymaster" : "operative",
+    team,
+    role,
   };
 }
 
@@ -617,19 +626,26 @@ function publicPlayer(player, activeTokens) {
   };
 }
 
-function smallerTeam(room) {
-  const counts = room.players.reduce(
-    (acc, player) => {
-      acc[player.team] += 1;
-      return acc;
-    },
-    { red: 0, blue: 0 },
+function ensureSpymasterAvailable(room, player) {
+  if (player.role !== "spymaster" || !player.team) return;
+
+  const existing = room.players.find(
+    (item) =>
+      item.token !== player.token &&
+      item.team === player.team &&
+      item.role === "spymaster",
   );
-  return counts.red <= counts.blue ? "red" : "blue";
+  if (existing) {
+    throw new Error(`${capitalize(player.team)} already has a spymaster.`);
+  }
 }
 
 function otherTeam(team) {
   return team === "red" ? "blue" : "red";
+}
+
+function capitalize(value) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function shuffle(items) {
