@@ -233,7 +233,7 @@ h3 {
   flex: 0 0 auto;
   border: 1px solid rgba(47, 111, 97, 0.22);
   border-radius: 999px;
-  background: var(--accent-soft);
+  background: var(--red);
   color: var(--accent);
   padding: 0.35rem 0.65rem;
   font-size: 0.78rem;
