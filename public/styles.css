@@ -342,6 +342,10 @@ h3 {
   grid-template-columns: 1fr;
 }
 
+.button-row[hidden] {
+  display: none;
+}
+
 .team-controls button {
   background: var(--surface);
   color: var(--text);
@@ -584,6 +588,7 @@ h3 {
   }
 
   .room-panel {
+    margin-top: 2.3rem;
     padding: 0.75rem;
   }
 

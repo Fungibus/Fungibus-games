@@ -43,11 +43,8 @@
           <button id="copyShareButton" class="secondary" type="button" disabled>Copy link</button>
         </div>
 
-        <div class="team-controls" aria-label="Player settings">
-          <button class="secondary" type="button" data-team-button="red">Red Team</button>
-          <button class="secondary" type="button" data-team-button="blue">Blue Team</button>
-          <button class="secondary" type="button" data-spymaster-button="red">Red Spymaster</button>
-          <button class="secondary" type="button" data-spymaster-button="blue">Blue Spymaster</button>
+        <div id="gameControlBlock" class="button-row">
+          <button id="newGameButton" type="button">New game</button>
         </div>
 
         <div class="panel-block">
@@ -59,8 +56,11 @@
           <p id="statusText" class="muted-line" role="status">Create a room or open a shared link.</p>
         </div>
 
-        <div class="button-row">
-          <button id="newBoardButton" type="button">Start</button>
+        <div class="team-controls" aria-label="Player settings">
+          <button class="secondary" type="button" data-team-button="red">Red Team</button>
+          <button class="secondary" type="button" data-team-button="blue">Blue Team</button>
+          <button class="secondary" type="button" data-spymaster-button="red">Red Spymaster</button>
+          <button class="secondary" type="button" data-spymaster-button="blue">Blue Spymaster</button>
         </div>
 
         <section class="players-block" aria-labelledby="teams-title">

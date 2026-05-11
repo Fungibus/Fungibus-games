@@ -27,7 +27,8 @@
     clueWord: document.querySelector("#clueWord"),
     clueCount: document.querySelector("#clueCount"),
     endTurnButton: document.querySelector("#endTurnButton"),
-    newBoardButton: document.querySelector("#newBoardButton"),
+    gameControlBlock: document.querySelector("#gameControlBlock"),
+    newGameButton: document.querySelector("#newGameButton"),
     teamsList: document.querySelector("#teamsList"),
     redScore: document.querySelector("#redScore"),
     blueScore: document.querySelector("#blueScore"),
@@ -57,7 +58,7 @@
     els.playerName.addEventListener("change", updatePlayer);
     els.clueForm.addEventListener("submit", submitClue);
     els.endTurnButton.addEventListener("click", () => send({ type: "end_turn" }));
-    els.newBoardButton.addEventListener("click", () => {
+    els.newGameButton.addEventListener("click", () => {
       send({ type: state.room?.status === "waiting" ? "start_game" : "reset_game" });
     });
 
@@ -182,13 +183,13 @@
       let opened = false;
       state.socket = socket;
       state.connected = false;
-      renderConnection();
+      render();
 
       socket.addEventListener("open", () => {
         opened = true;
         state.connected = true;
         setStatus("Connected.");
-        renderConnection();
+        render();
         resolve();
       });
 
@@ -206,10 +207,10 @@
 
       socket.addEventListener("close", () => {
         state.connected = false;
-        renderConnection();
         if (state.socket === socket) {
           setStatus(opened ? "Disconnected." : "Connection failed.");
         }
+        render();
       });
 
       socket.addEventListener("error", () => {
@@ -311,6 +312,7 @@
 
   function render() {
     renderConnection();
+    renderHostControls();
     renderRoomInfo();
     renderTeamControls();
     renderTeams();
@@ -335,12 +337,12 @@
       els.clueText.textContent = "No clue";
       els.redScore.textContent = "Red -";
       els.blueScore.textContent = "Blue -";
-      els.newBoardButton.textContent = "Start";
+      els.newGameButton.textContent = "New game";
       els.clueForm.querySelectorAll("input, button").forEach((element) => {
         element.disabled = true;
       });
       els.endTurnButton.disabled = true;
-      els.newBoardButton.disabled = true;
+      els.newGameButton.disabled = true;
       renderTeamControls();
       return;
     }
@@ -349,7 +351,7 @@
     els.clueText.textContent = room.winner ? `${room.winner.toUpperCase()} wins` : clue;
     els.redScore.textContent = `Red ${room.remaining.red}`;
     els.blueScore.textContent = `Blue ${room.remaining.blue}`;
-    els.newBoardButton.textContent = room.status === "waiting" ? "Start" : "New board";
+    els.newGameButton.textContent = "New game";
 
     const canSubmitClue =
       room.status === "playing" &&
@@ -362,7 +364,13 @@
 
     const canEndTurn = room.status === "playing" && !room.winner && room.you?.team === room.turn;
     els.endTurnButton.disabled = !canEndTurn;
-    els.newBoardButton.disabled = !state.connected;
+    els.newGameButton.disabled = !state.connected || !room.isHost;
+  }
+
+  function renderHostControls() {
+    const room = state.room;
+    els.createRoomButton.hidden = Boolean(room);
+    els.gameControlBlock.hidden = Boolean(room && !room.isHost);
   }
 
   function renderTeamControls() {

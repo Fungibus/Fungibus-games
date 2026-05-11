@@ -134,10 +134,14 @@ export class CodenameRoom extends DurableObject {
     if (!roomCode) return json({ error: "Invalid room code." }, 400);
     if (this.loadRoom()) return json({ error: "Room already exists." }, 409);
 
+    const player = normalizePlayer(payload);
+    if (!player) return json({ error: "Player token is required." }, 400);
+
     const room = {
       roomCode,
       createdAt: Date.now(),
       updatedAt: Date.now(),
+      hostToken: player.token,
       status: "waiting",
       board: [],
       startingTeam: null,
@@ -148,8 +152,6 @@ export class CodenameRoom extends DurableObject {
       players: [],
     };
 
-    const player = normalizePlayer(payload);
-    if (!player) return json({ error: "Player token is required." }, 400);
     room.players.push(player);
 
     await this.saveRoom(room, { scheduleAlarm: true });
@@ -272,6 +274,7 @@ export class CodenameRoom extends DurableObject {
     }
 
     if (action.type === "start_game" || action.type === "reset_game") {
+      ensureHost(room, player);
       startGame(room);
       return true;
     }
@@ -335,6 +338,7 @@ export class CodenameRoom extends DurableObject {
         .filter(Boolean),
     );
     const you = room.players.find((player) => player.token === playerToken);
+    const hostToken = getHostToken(room);
     const canSeeAnswers = you?.role === "spymaster";
 
     return {
@@ -345,6 +349,7 @@ export class CodenameRoom extends DurableObject {
       clue: room.clue,
       guessesThisTurn: room.guessesThisTurn,
       winner: room.winner,
+      isHost: Boolean(you && you.token === hostToken),
       remaining: remaining(room),
       you: you ? publicPlayer(you, activeTokens) : null,
       players: room.players.map((player) => publicPlayer(player, activeTokens)),
@@ -569,6 +574,16 @@ function ensurePlaying(room) {
   if (room.status !== "playing" || !room.board.length || room.winner) {
     throw new Error("Game is not active.");
   }
+}
+
+function ensureHost(room, player) {
+  if (player.token !== getHostToken(room)) {
+    throw new Error("Only the host can start a new game.");
+  }
+}
+
+function getHostToken(room) {
+  return room.hostToken || room.players[0]?.token || null;
 }
 
 function remaining(room) {
