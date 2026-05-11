@@ -253,7 +253,7 @@
   }
 
   function isPlaceholderApiOrigin(value) {
-    return value.includes("YOUR_WORKERS_DEV_SUBDOMAIN");
+    return value.includes("derekyi2001");
   }
 
   function isLocalFrontend() {
