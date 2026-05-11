@@ -26,6 +26,7 @@
     phaseCopy: document.querySelector("#phaseCopy"),
     bidBadge: document.querySelector("#bidBadge"),
     tableGrid: document.querySelector("#tableGrid"),
+    roundLog: document.querySelector("#roundLog"),
     handList: document.querySelector("#handList"),
     actionPanel: document.querySelector("#actionPanel"),
     noticeLine: document.querySelector("#noticeLine"),
@@ -246,6 +247,7 @@
     renderHeader();
     renderStatus();
     renderTable();
+    renderRoundLog();
     renderHand();
     renderActionPanel();
     renderNotice();
@@ -339,6 +341,35 @@
         send({ type: "reveal_disc", ownerToken: button.dataset.flip });
       });
     });
+  }
+
+  function renderRoundLog() {
+    const events = relevantLogEvents(state.room?.history || []);
+
+    if (!events.length) {
+      els.roundLog.innerHTML = `<li>${state.room ? "No bids yet." : "Create or join."}</li>`;
+      return;
+    }
+
+    els.roundLog.innerHTML = events.map((entry) => `<li>${escapeHtml(shortLogEntry(entry))}</li>`).join("");
+  }
+
+  function relevantLogEvents(history) {
+    return history
+      .filter((entry) =>
+        / bid \d+\.| passed\.|completed the challenge\.|revealed a skull\.|lost a disc\.|was eliminated\.|won the game\.|Round \d+ begins|must choose|chose .+ to start/.test(
+          entry,
+        ),
+      )
+      .slice(0, 18);
+  }
+
+  function shortLogEntry(entry) {
+    return entry
+      .replace("completed the challenge.", "won the round.")
+      .replace("revealed a skull.", "lost the round.")
+      .replace("lost a disc.", "lost a disc.")
+      .replace("won the game.", "won the game.");
   }
 
   function seatPosition(index, total) {

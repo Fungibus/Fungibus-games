@@ -37,15 +37,24 @@
     </header>
 
     <main class="skull-shell">
-      <section class="table-wrap" aria-label="Skull table">
-        <div class="table-meta" aria-live="polite">
-          <p id="phaseEyebrow">Room</p>
-          <h1 id="phaseTitle">Create a room</h1>
-          <p id="phaseCopy">Invite 3-6 players, then start.</p>
-          <span id="bidBadge">No bid</span>
-        </div>
-        <div id="tableGrid" class="table-grid" aria-live="polite"></div>
-      </section>
+      <div class="game-layout">
+        <section class="table-wrap" aria-label="Skull table">
+          <div class="table-meta" aria-live="polite">
+            <p id="phaseEyebrow">Room</p>
+            <h1 id="phaseTitle">Create a room</h1>
+            <p id="phaseCopy">Invite 3-6 players, then start.</p>
+            <span id="bidBadge">No bid</span>
+          </div>
+          <div id="tableGrid" class="table-grid" aria-live="polite"></div>
+        </section>
+
+        <aside class="round-log" aria-label="Game log">
+          <h2>Log</h2>
+          <ol id="roundLog" aria-live="polite">
+            <li>Create or join.</li>
+          </ol>
+        </aside>
+      </div>
 
       <section class="play-strip" aria-label="Your controls">
         <div id="handList" class="hand-list" aria-label="Your discs"></div>
