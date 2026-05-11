@@ -540,6 +540,14 @@
 
   function renderBoard() {
     const room = state.room;
+    els.boardGrid.dataset.activeSpymaster =
+      room?.status === "playing" &&
+      !room.winner &&
+      room.you?.role === "spymaster" &&
+      room.you?.team === room.turn
+        ? "true"
+        : "false";
+
     if (!room?.board?.length) {
       els.boardGrid.replaceChildren(
         ...Array.from({ length: 25 }, () => {

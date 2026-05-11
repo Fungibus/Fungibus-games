@@ -557,7 +557,7 @@ h3 {
   box-shadow: 0 12px 30px rgba(40, 45, 39, 0.06);
 }
 
-.word-card:disabled {
+.board-grid[data-active-spymaster="true"] .word-card:disabled {
   opacity: 1;
 }
 
