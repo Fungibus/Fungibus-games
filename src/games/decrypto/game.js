@@ -44,9 +44,18 @@ export function applyAction(room, player, action) {
     return true;
   }
 
-  if (action.type === "start_game" || action.type === "reset_game") {
+  if (action.type === "start_game") {
     ensureHost(room, player);
+    if (room.status !== "waiting") {
+      throw new Error("Reset the game before starting again.");
+    }
     startGame(room);
+    return true;
+  }
+
+  if (action.type === "reset_game") {
+    ensureHost(room, player);
+    resetGame(room);
     return true;
   }
 
@@ -156,6 +165,22 @@ export function startGame(room) {
   room.turns = createTurns();
   room.history = [];
   assignEncryptors(room);
+  room.updatedAt = Date.now();
+}
+
+export function resetGame(room) {
+  ensureRoomShape(room);
+
+  room.status = "waiting";
+  room.phase = "waiting";
+  room.round = 0;
+  room.activeTeam = "white";
+  room.winner = null;
+  room.encryptors = createEmptyEncryptors();
+  room.rotationCursors = createEmptyRotationCursors();
+  room.teams = createEmptyTeams();
+  room.turns = createEmptyTurns();
+  room.history = [];
   room.updatedAt = Date.now();
 }
 

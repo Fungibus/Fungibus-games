@@ -23,6 +23,34 @@ describe("Decrypto rules", () => {
     assert.equal(room.encryptors.black, "b1");
   });
 
+  it("resets an active game to the team lobby before the next start", () => {
+    const { room, w1, b1 } = makeRoom([
+      ["w1", "white"],
+      ["b1", "black"],
+    ]);
+
+    applyAction(room, w1, { type: "start_game" });
+    applyAction(room, w1, { type: "reset_game" });
+
+    assert.equal(room.status, "waiting");
+    assert.equal(room.phase, "waiting");
+    assert.equal(room.round, 0);
+    assert.equal(room.encryptors.white, null);
+    assert.equal(room.encryptors.black, null);
+    assert.deepEqual(room.teams.white.words, []);
+    assert.deepEqual(room.turns.white, null);
+
+    applyAction(room, w1, { type: "set_player", name: "W1", team: "black" });
+    applyAction(room, b1, { type: "set_player", name: "B1", team: "white" });
+    applyAction(room, w1, { type: "start_game" });
+
+    assert.equal(room.status, "playing");
+    assert.equal(room.players.find((player) => player.token === "w1").team, "black");
+    assert.equal(room.players.find((player) => player.token === "b1").team, "white");
+    assert.equal(room.encryptors.black, "w1");
+    assert.equal(room.encryptors.white, "b1");
+  });
+
   it("auto-rotates one Encryptor per team each round", () => {
     const { room, w1, w2, b1, b2 } = makeRoom();
 
