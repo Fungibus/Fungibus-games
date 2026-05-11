@@ -4,6 +4,10 @@ const MAX_ROOM_CREATE_ATTEMPTS = 6;
 const ROOM_ROW_ID = "room";
 const ROOM_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_PLAYERS = 12;
+const DEFAULT_FRONTEND_ORIGIN = "https://fungibus.github.io";
+const LOCAL_DEV_ORIGINS = ["http://localhost:8000", "http://127.0.0.1:8000"];
+const CORS_ALLOW_METHODS = "GET, POST, OPTIONS";
+const CORS_ALLOW_HEADERS = "content-type";
 
 const WORDS = [
   "Anchor",
@@ -392,11 +396,21 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    if (url.pathname.startsWith("/api/")) {
-      return handleApiRequest(request, env, url);
+    if (!url.pathname.startsWith("/api/")) {
+      return json({ error: "Not found." }, 404);
     }
 
-    return env.ASSETS.fetch(request);
+    if (request.method === "OPTIONS") {
+      return handleCorsPreflight(request, env, url);
+    }
+
+    if (!requestOriginIsAllowed(request, env, url)) {
+      return json({ error: "Origin not allowed." }, 403);
+    }
+
+    const response = await handleApiRequest(request, env, url);
+    if (response.status === 101) return response;
+    return withCors(response, request, env, url);
   },
 };
 
@@ -438,7 +452,7 @@ async function createApiRoom(request, env) {
       const payload = await readJson(response);
       return json({
         ...payload,
-        shareUrl: roomShareUrl(request.url, payload.roomCode || roomCode),
+        shareUrl: roomShareUrl(env, payload.roomCode || roomCode),
       });
     }
   }
@@ -463,7 +477,7 @@ async function joinApiRoom(request, env, value) {
   const payload = await readJson(response);
   return json({
     ...payload,
-    shareUrl: roomShareUrl(request.url, payload.roomCode || roomCode),
+    shareUrl: roomShareUrl(env, payload.roomCode || roomCode),
   });
 }
 
@@ -489,10 +503,85 @@ function getRoomStub(env, roomCode) {
   return env.CODENAME_ROOMS.get(id);
 }
 
-function roomShareUrl(baseUrl, roomCode) {
-  const url = new URL("/codenames/", baseUrl);
+function roomShareUrl(env, roomCode) {
+  const url = new URL("/codenames/", getFrontendOrigin(env));
   url.searchParams.set("room", roomCode);
   return url.toString();
+}
+
+function handleCorsPreflight(request, env, url) {
+  if (!requestOriginIsAllowed(request, env, url)) {
+    return new Response(null, { status: 403 });
+  }
+
+  return new Response(null, {
+    status: 204,
+    headers: corsHeaders(request, env, url),
+  });
+}
+
+function withCors(response, request, env, url) {
+  const headers = corsHeaders(request, env, url);
+  if (!headers.has("Access-Control-Allow-Origin")) return response;
+
+  for (const [name, value] of response.headers) {
+    if (!headers.has(name)) headers.set(name, value);
+  }
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+function corsHeaders(request, env, url) {
+  const headers = new Headers();
+  const origin = request.headers.get("Origin");
+  if (!isAllowedOrigin(origin, env, url)) return headers;
+
+  headers.set("Access-Control-Allow-Origin", origin);
+  headers.set("Access-Control-Allow-Methods", CORS_ALLOW_METHODS);
+  headers.set("Access-Control-Allow-Headers", CORS_ALLOW_HEADERS);
+  headers.set("Access-Control-Max-Age", "86400");
+  headers.set("Vary", "Origin");
+  return headers;
+}
+
+function requestOriginIsAllowed(request, env, url) {
+  const origin = request.headers.get("Origin");
+  return !origin || isAllowedOrigin(origin, env, url);
+}
+
+function isAllowedOrigin(origin, env, url) {
+  return Boolean(origin && getAllowedOrigins(env, url).has(origin));
+}
+
+function getAllowedOrigins(env, url) {
+  const origins = new Set([getFrontendOrigin(env)]);
+
+  for (const origin of String(env.ALLOWED_ORIGINS || "").split(/[,\s]+/)) {
+    const normalized = normalizeOrigin(origin);
+    if (normalized) origins.add(normalized);
+  }
+
+  if (["localhost", "127.0.0.1"].includes(url.hostname)) {
+    for (const origin of LOCAL_DEV_ORIGINS) origins.add(origin);
+  }
+
+  return origins;
+}
+
+function getFrontendOrigin(env) {
+  return normalizeOrigin(env.FRONTEND_ORIGIN) || DEFAULT_FRONTEND_ORIGIN;
+}
+
+function normalizeOrigin(value) {
+  try {
+    return new URL(String(value || "")).origin;
+  } catch {
+    return "";
+  }
 }
 
 function methodNotAllowed() {

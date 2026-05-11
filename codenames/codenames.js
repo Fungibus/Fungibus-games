@@ -3,6 +3,8 @@
   const NAME_KEY = "codename-grid-player-name";
   const TEAM_KEY = "codename-grid-team";
   const ROLE_KEY = "codename-grid-role";
+  const LOCAL_API_ORIGIN = "http://127.0.0.1:8787";
+  const API_ORIGIN = getApiOrigin();
 
   const state = {
     socket: null,
@@ -104,7 +106,9 @@
     setBusy(true);
     setStatus("Creating room.");
     try {
-      const response = await fetch("/api/codenames/rooms", {
+      ensureApiOrigin();
+
+      const response = await fetch(apiUrl("/api/codenames/rooms"), {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(playerPayload()),
@@ -132,7 +136,9 @@
     setBusy(true);
     setStatus("Opening shared room.");
     try {
-      const response = await fetch(`/api/codenames/rooms/${roomCode}/join`, {
+      ensureApiOrigin();
+
+      const response = await fetch(apiUrl(`/api/codenames/rooms/${roomCode}/join`), {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(playerPayload()),
@@ -165,12 +171,14 @@
     }
 
     return new Promise((resolve, reject) => {
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const socket = new WebSocket(
-        `${protocol}//${window.location.host}/api/codenames/rooms/${roomCode}/socket?playerToken=${encodeURIComponent(
-          state.playerToken,
-        )}`,
-      );
+      try {
+        ensureApiOrigin();
+      } catch (error) {
+        reject(error);
+        return;
+      }
+
+      const socket = new WebSocket(socketUrl(roomCode));
 
       let opened = false;
       state.socket = socket;
@@ -225,6 +233,49 @@
     history.replaceState(null, "", shareUrl);
     setShareUrl(shareUrl);
     return shareUrl;
+  }
+
+  function getApiOrigin() {
+    const configured = document
+      .querySelector('meta[name="fungibus-api-origin"]')
+      ?.content.trim();
+
+    if ((!configured || isPlaceholderApiOrigin(configured)) && isLocalFrontend()) {
+      return LOCAL_API_ORIGIN;
+    }
+    if (!configured || isPlaceholderApiOrigin(configured)) return "";
+
+    try {
+      return new URL(configured).origin;
+    } catch {
+      return "";
+    }
+  }
+
+  function isPlaceholderApiOrigin(value) {
+    return value.includes("YOUR_WORKERS_DEV_SUBDOMAIN");
+  }
+
+  function isLocalFrontend() {
+    return ["localhost", "127.0.0.1"].includes(window.location.hostname);
+  }
+
+  function ensureApiOrigin() {
+    if (API_ORIGIN) return;
+    throw new Error("Cloudflare backend URL is not configured.");
+  }
+
+  function apiUrl(path) {
+    return new URL(path, API_ORIGIN).toString();
+  }
+
+  function socketUrl(roomCode) {
+    const url = new URL(
+      `/api/codenames/rooms/${roomCode}/socket?playerToken=${encodeURIComponent(state.playerToken)}`,
+      API_ORIGIN,
+    );
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    return url.toString();
   }
 
   function setShareUrl(value) {

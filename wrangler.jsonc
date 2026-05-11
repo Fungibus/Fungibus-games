@@ -6,12 +6,9 @@
   "observability": {
     "enabled": true
   },
-  "assets": {
-    "directory": "./public",
-    "binding": "ASSETS",
-    "run_worker_first": [
-      "/api/*"
-    ]
+  "vars": {
+    "FRONTEND_ORIGIN": "https://fungibus.github.io",
+    "ALLOWED_ORIGINS": "https://fungibus.github.io"
   },
   "durable_objects": {
     "bindings": [
