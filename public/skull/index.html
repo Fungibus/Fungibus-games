@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="Skull, a realtime bluffing board game for flowers, skulls, bids, and flips."
+    >
+    <title>Skull</title>
+    <link rel="stylesheet" href="/shared/styles.css">
+    <link rel="stylesheet" href="/games/skull/skull.css">
+    <script src="/games/skull/skull.js" defer></script>
+  </head>
+  <body>
+    <header class="game-header">
+      <a class="home-link" href="/">Mini Game Projects</a>
+      <div class="room-strip" aria-live="polite">
+        <span id="connectionLabel" class="connection-dot is-offline"></span>
+        <span id="roomLabel">No room</span>
+      </div>
+    </header>
+
+    <main class="skull-shell">
+      <section class="room-panel" aria-label="Skull room controls">
+        <div class="section-header compact">
+          <p class="eyebrow">Skull</p>
+          <h1>Flowers and skulls</h1>
+        </div>
+
+        <form id="roomForm" class="stacked-form">
+          <label>
+            <span>Name</span>
+            <input id="playerName" name="playerName" maxlength="24" autocomplete="name">
+          </label>
+          <button id="createRoomButton" type="submit">Create room</button>
+        </form>
+
+        <div id="shareBlock" class="share-block" hidden>
+          <label>
+            <span>Share link</span>
+            <input id="shareUrl" readonly aria-label="Share link">
+          </label>
+          <button id="copyShareButton" class="secondary" type="button" disabled>Copy link</button>
+        </div>
+
+        <div id="gameControlBlock" class="button-row">
+          <button id="newGameButton" type="button">Start game</button>
+        </div>
+
+        <section class="panel-block" aria-labelledby="hand-title">
+          <h2 id="hand-title">Hand</h2>
+          <div id="handControls" class="hand-controls" aria-live="polite"></div>
+        </section>
+
+        <section class="panel-block" aria-labelledby="action-title">
+          <h2 id="action-title">Action</h2>
+          <div id="actionControls" class="action-controls" aria-live="polite"></div>
+        </section>
+
+        <section class="panel-block" aria-labelledby="log-title">
+          <h2 id="log-title">Log</h2>
+          <ol id="actionLog" class="action-log" aria-live="polite">
+            <li>Create a room or open a shared link.</li>
+          </ol>
+        </section>
+      </section>
+
+      <section class="table-section" aria-label="Skull table">
+        <div class="table-topline">
+          <div id="phaseBadge" class="phase-banner">No game</div>
+          <div id="bidBadge" class="bid-banner">No bid</div>
+        </div>
+
+        <div id="tableGrid" class="table-grid" aria-live="polite"></div>
+      </section>
+    </main>
+  </body>
+</html>

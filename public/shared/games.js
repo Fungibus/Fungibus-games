@@ -9,6 +9,15 @@ export const games = [
       "A lightweight shared word board for clue-giving, guessing, and keeping teams moving through a clean room.",
   },
   {
+    slug: "skull",
+    title: "Skull",
+    status: "Playable",
+    route: "/skull/",
+    apiNamespace: "/api/skull",
+    description:
+      "A shared bluffing table for placing flowers and skulls, bidding high, and flipping just enough discs to survive.",
+  },
+  {
     slug: "wordle",
     title: "Wordle",
     status: "Planned",
