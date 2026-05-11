@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="Codename Grid, a minimal shared word board game."
+    >
+    <title>Codename Grid</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/codenames/codenames.js" defer></script>
+  </head>
+  <body>
+    <header class="game-header">
+      <a class="home-link" href="/">Mini Game Projects</a>
+      <div class="room-strip" aria-live="polite">
+        <span id="connectionLabel" class="connection-dot is-offline"></span>
+        <span id="roomLabel">No room</span>
+      </div>
+    </header>
+
+    <main class="game-shell">
+      <section class="room-panel" aria-labelledby="room-title">
+        <div class="section-header compact">
+          <p class="eyebrow">Codename Grid</p>
+          <h1 id="room-title">Room</h1>
+        </div>
+
+        <form id="roomForm" class="stacked-form">
+          <label>
+            <span>Name</span>
+            <input id="playerName" name="playerName" maxlength="24" autocomplete="name">
+          </label>
+          <label>
+            <span>Room code</span>
+            <input
+              id="roomCode"
+              name="roomCode"
+              maxlength="8"
+              autocomplete="off"
+              autocapitalize="characters"
+              spellcheck="false"
+            >
+          </label>
+          <div class="button-row">
+            <button id="createRoomButton" type="button">Create</button>
+            <button id="joinRoomButton" type="submit">Join</button>
+          </div>
+        </form>
+
+        <div class="control-grid" aria-label="Player settings">
+          <label>
+            <span>Team</span>
+            <select id="teamSelect">
+              <option value="red">Red</option>
+              <option value="blue">Blue</option>
+            </select>
+          </label>
+          <label>
+            <span>Role</span>
+            <select id="roleSelect">
+              <option value="operative">Operative</option>
+              <option value="spymaster">Spymaster</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="panel-block">
+          <div class="card-topline tight">
+            <h2>Turn</h2>
+            <span id="turnBadge" class="status">-</span>
+          </div>
+          <p id="clueText" class="muted-line">No clue</p>
+          <p id="statusText" class="muted-line" role="status">Create or join a room.</p>
+        </div>
+
+        <form id="clueForm" class="stacked-form">
+          <label>
+            <span>Clue</span>
+            <input id="clueWord" maxlength="24" autocomplete="off" spellcheck="false">
+          </label>
+          <label>
+            <span>Count</span>
+            <input id="clueCount" type="number" min="0" max="9" value="1">
+          </label>
+          <button type="submit">Send clue</button>
+        </form>
+
+        <div class="button-row">
+          <button id="endTurnButton" type="button">End turn</button>
+          <button id="newBoardButton" type="button">Start</button>
+        </div>
+
+        <section class="players-block" aria-labelledby="players-title">
+          <h2 id="players-title">Players</h2>
+          <ul id="playersList" class="players-list"></ul>
+        </section>
+      </section>
+
+      <section class="board-section" aria-labelledby="board-title">
+        <div class="board-topline">
+          <div>
+            <p class="eyebrow">Board</p>
+            <h2 id="board-title">Twenty-five words</h2>
+          </div>
+          <div class="score-strip" aria-label="Remaining cards">
+            <span id="redScore">Red -</span>
+            <span id="blueScore">Blue -</span>
+          </div>
+        </div>
+
+        <div id="boardGrid" class="board-grid" aria-live="polite"></div>
+      </section>
+    </main>
+  </body>
+</html>
