@@ -9,16 +9,10 @@ nvm use
 npm install
 ```
 
-Run the Durable Object Worker in one terminal:
+Run the Worker locally:
 
 ```sh
-npm run dev:rooms
-```
-
-Run the Cloudflare Pages site in another terminal:
-
-```sh
-npm run dev:pages
+npm run dev
 ```
 
 Validate the Cloudflare deploy config without deploying:
@@ -27,11 +21,26 @@ Validate the Cloudflare deploy config without deploying:
 npm run check
 ```
 
+Deploy manually:
+
+```sh
+npm run deploy
+```
+
+## Cloudflare deploys
+
+This repo deploys as one Cloudflare Worker with Workers Static Assets. Cloudflare
+Git builds can use the default deploy command:
+
+```sh
+npx wrangler deploy
+```
+
 ## Cloudflare layout
 
-- `public/` contains the static Pages site.
-- `functions/` contains Pages Functions for `/api/codenames/*`.
-- `workers/codename-rooms/` contains the SQLite-backed Durable Object Worker.
+- `public/` contains static assets served through the Worker assets binding.
+- `src/index.js` contains `/api/codenames/*` routes and the SQLite-backed
+  Durable Object.
 
 The Codename Grid backend uses `new_sqlite_classes` so it remains compatible
 with the Workers Free plan.

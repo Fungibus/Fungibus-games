@@ -1,5 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 
+const MAX_ROOM_CREATE_ATTEMPTS = 6;
 const ROOM_ROW_ID = "room";
 const ROOM_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_PLAYERS = 12;
@@ -388,19 +389,96 @@ export class CodenameRoom extends DurableObject {
 }
 
 export default {
-  fetch(request, env) {
+  async fetch(request, env) {
     const url = new URL(request.url);
-    const match = url.pathname.match(/^\/rooms\/([A-Z0-9]{4,8})\/(create|join|socket)$/);
-    if (!match) {
-      return json({ service: "fungibus-codename-rooms", ok: true });
+
+    if (url.pathname.startsWith("/api/")) {
+      return handleApiRequest(request, env, url);
     }
 
-    const [, roomCode] = match;
-    const id = env.CODENAME_ROOMS.idFromName(roomCode);
-    const stub = env.CODENAME_ROOMS.get(id);
-    return stub.fetch(request);
+    return env.ASSETS.fetch(request);
   },
 };
+
+async function handleApiRequest(request, env, url) {
+  if (url.pathname === "/api/codenames/rooms" || url.pathname === "/api/codenames/rooms/") {
+    if (request.method !== "POST") return methodNotAllowed();
+    return createApiRoom(request, env);
+  }
+
+  const joinMatch = url.pathname.match(/^\/api\/codenames\/rooms\/([^/]+)\/join\/?$/);
+  if (joinMatch) {
+    if (request.method !== "POST") return methodNotAllowed();
+    return joinApiRoom(request, env, joinMatch[1]);
+  }
+
+  const socketMatch = url.pathname.match(/^\/api\/codenames\/rooms\/([^/]+)\/socket\/?$/);
+  if (socketMatch) {
+    if (request.method !== "GET") return methodNotAllowed();
+    return openApiRoomSocket(request, env, socketMatch[1]);
+  }
+
+  return json({ error: "Not found." }, 404);
+}
+
+async function createApiRoom(request, env) {
+  const player = await readJson(request);
+
+  for (let attempt = 0; attempt < MAX_ROOM_CREATE_ATTEMPTS; attempt += 1) {
+    const roomCode = createRoomCode();
+    const response = await fetchRoom(env, roomCode, request.url, "create", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ...player, roomCode }),
+    });
+
+    if (response.status !== 409) {
+      return response;
+    }
+  }
+
+  return json({ error: "No room code is available." }, 503);
+}
+
+async function joinApiRoom(request, env, value) {
+  const roomCode = cleanRoomCode(value);
+  if (!roomCode) {
+    return json({ error: "Invalid room code." }, 400);
+  }
+
+  const player = await readJson(request);
+  return fetchRoom(env, roomCode, request.url, "join", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ ...player, roomCode }),
+  });
+}
+
+function openApiRoomSocket(request, env, value) {
+  const roomCode = cleanRoomCode(value);
+  if (!roomCode) {
+    return json({ error: "Invalid room code." }, 400);
+  }
+
+  const url = new URL(request.url);
+  url.pathname = `/rooms/${roomCode}/socket`;
+  const stub = getRoomStub(env, roomCode);
+  return stub.fetch(new Request(url, request));
+}
+
+function fetchRoom(env, roomCode, baseUrl, action, init) {
+  const stub = getRoomStub(env, roomCode);
+  return stub.fetch(new Request(new URL(`/rooms/${roomCode}/${action}`, baseUrl), init));
+}
+
+function getRoomStub(env, roomCode) {
+  const id = env.CODENAME_ROOMS.idFromName(roomCode);
+  return env.CODENAME_ROOMS.get(id);
+}
+
+function methodNotAllowed() {
+  return json({ error: "Method not allowed." }, 405);
+}
 
 function startGame(room) {
   const startingTeam = Math.random() < 0.5 ? "red" : "blue";
@@ -542,6 +620,13 @@ function shuffle(items) {
     [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
   }
   return copy;
+}
+
+function createRoomCode() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = new Uint8Array(5);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
 }
 
 function cleanRoomCode(value) {

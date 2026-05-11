@@ -1,20 +1,34 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "fungibus-games",
-  "pages_build_output_dir": "./public",
+  "main": "src/index.js",
   "compatibility_date": "2026-05-11",
   "observability": {
     "enabled": true
+  },
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/api/*"
+    ]
   },
   "durable_objects": {
     "bindings": [
       {
         "name": "CODENAME_ROOMS",
-        "class_name": "CodenameRoom",
-        "script_name": "fungibus-codename-rooms"
+        "class_name": "CodenameRoom"
       }
     ]
   },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "CodenameRoom"
+      ]
+    }
+  ],
   "compatibility_flags": [
     "nodejs_compat"
   ]

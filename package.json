@@ -3,15 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npm run dev:pages",
-    "dev:rooms": "WRANGLER_LOG_PATH=.wrangler/logs wrangler dev --config workers/codename-rooms/wrangler.jsonc --port 8788",
-    "dev:pages": "WRANGLER_LOG_PATH=.wrangler/logs wrangler pages dev public --compatibility-date=2026-05-11 --do CODENAME_ROOMS=CodenameRoom@fungibus-codename-rooms --port 8787",
-    "check": "npm run check:rooms && npm run check:pages",
-    "check:rooms": "WRANGLER_LOG_PATH=.wrangler/logs wrangler deploy --config workers/codename-rooms/wrangler.jsonc --dry-run",
-    "check:pages": "WRANGLER_LOG_PATH=.wrangler/logs wrangler pages functions build functions --outdir .wrangler/pages-functions --compatibility-date=2026-05-11",
-    "deploy": "npm run deploy:rooms && npm run deploy:pages",
-    "deploy:rooms": "WRANGLER_LOG_PATH=.wrangler/logs wrangler deploy --config workers/codename-rooms/wrangler.jsonc",
-    "deploy:pages": "WRANGLER_LOG_PATH=.wrangler/logs wrangler pages deploy public"
+    "dev": "WRANGLER_LOG_PATH=.wrangler/logs wrangler dev",
+    "check": "WRANGLER_LOG_PATH=.wrangler/logs wrangler deploy --dry-run",
+    "deploy": "WRANGLER_LOG_PATH=.wrangler/logs wrangler deploy"
   },
   "engines": {
     "node": ">=24"
