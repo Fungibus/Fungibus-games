@@ -116,7 +116,7 @@
       const payload = await readJson(response);
       if (!response.ok) throw new Error(payload.error || "Room could not be created.");
 
-      const shareUrl = setUrlRoom(payload.roomCode, payload.shareUrl);
+      const shareUrl = setUrlRoom(payload.roomCode);
       await connect(payload.roomCode);
       setStatus("Room ready. Share the link to invite players.");
       setShareUrl(shareUrl);
@@ -146,7 +146,7 @@
       const payload = await readJson(response);
       if (!response.ok) throw new Error(payload.error || "Room could not be joined.");
 
-      const shareUrl = setUrlRoom(payload.roomCode, payload.shareUrl);
+      const shareUrl = setUrlRoom(payload.roomCode);
       await connect(payload.roomCode);
       setStatus("Joined shared room.");
       setShareUrl(shareUrl);
