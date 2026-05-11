@@ -18,6 +18,10 @@
       {
         "name": "CODENAME_ROOMS",
         "class_name": "CodenameRoom"
+      },
+      {
+        "name": "DECRYPTO_ROOMS",
+        "class_name": "DecryptoRoom"
       }
     ]
   },
@@ -26,6 +30,12 @@
       "tag": "v1",
       "new_sqlite_classes": [
         "CodenameRoom"
+      ]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": [
+        "DecryptoRoom"
       ]
     }
   ],

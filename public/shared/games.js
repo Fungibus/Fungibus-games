@@ -9,6 +9,15 @@ export const games = [
       "A lightweight shared word board for clue-giving, guessing, and keeping teams moving through a clean room.",
   },
   {
+    slug: "decrypto",
+    title: "Decrypto",
+    status: "Playable",
+    route: "/decrypto/",
+    apiNamespace: "/api/decrypto",
+    description:
+      "A shared team code table with secret keyword screens, clue rounds, interception guesses, and automatic score tracks.",
+  },
+  {
     slug: "wordle",
     title: "Wordle",
     status: "Planned",

@@ -2,8 +2,10 @@
   "name": "fungibus-games",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "WRANGLER_LOG_PATH=.wrangler/logs wrangler dev",
+    "test": "node --test",
     "check": "WRANGLER_LOG_PATH=.wrangler/logs wrangler deploy --dry-run",
     "deploy": "WRANGLER_LOG_PATH=.wrangler/logs wrangler deploy"
   },
