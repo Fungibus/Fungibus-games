@@ -8,7 +8,9 @@
       content="A small home for browser-based mini game projects."
     >
     <title>Mini Game Projects</title>
-    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/shared/styles.css">
+    <link rel="stylesheet" href="/shared/home.css">
+    <script type="module" src="/shared/home.js"></script>
   </head>
   <body>
     <main class="page-shell">
@@ -26,29 +28,7 @@
           <h2 id="projects-title">Project notes</h2>
         </div>
 
-        <div class="project-grid">
-          <a class="project-card project-card-link" href="/codenames/">
-            <div class="card-topline">
-              <h3>Codename Grid</h3>
-              <span class="status">Playable</span>
-            </div>
-            <p>
-              A lightweight shared word board for clue-giving, guessing, and
-              keeping teams moving through a clean room.
-            </p>
-          </a>
-
-          <article class="project-card">
-            <div class="card-topline">
-              <h3>Wordle</h3>
-              <span class="status">Planned</span>
-            </div>
-            <p>
-              A compact daily-style word puzzle with simple keyboard input,
-              clear feedback, and fast rounds.
-            </p>
-          </article>
-        </div>
+        <div id="gameGrid" class="project-grid"></div>
       </section>
     </main>
   </body>
