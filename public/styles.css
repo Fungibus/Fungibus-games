@@ -557,6 +557,10 @@ h3 {
   box-shadow: 0 12px 30px rgba(40, 45, 39, 0.06);
 }
 
+.word-card:disabled {
+  opacity: 1;
+}
+
 .word-card:not(:disabled):hover {
   border-color: rgba(47, 111, 97, 0.42);
   box-shadow: 0 16px 34px rgba(40, 45, 39, 0.1);
