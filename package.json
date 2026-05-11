@@ -1,0 +1,17 @@
+{
+  "name": "fungibus-games",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "WRANGLER_LOG_PATH=.wrangler/logs wrangler dev",
+    "deploy": "WRANGLER_LOG_PATH=.wrangler/logs wrangler deploy",
+    "check": "WRANGLER_LOG_PATH=.wrangler/logs wrangler deploy --dry-run"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "npm@11.14.1",
+  "devDependencies": {
+    "wrangler": "^4.90.0"
+  }
+}
