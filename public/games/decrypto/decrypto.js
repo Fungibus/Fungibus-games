@@ -392,7 +392,7 @@
       room.activeTeam === "black" && room.status === "playing" && room.phase !== "clues",
       room.you?.team === "black",
     );
-    els.newGameButton.textContent = room.status === "waiting" ? "Start game" : "New game";
+    els.newGameButton.textContent = room.status === "waiting" ? "Start game" : "Reset game";
     els.newGameButton.disabled = !state.connected || !room.isHost;
   }
 
@@ -417,7 +417,7 @@
     if (room.status === "finished") {
       return {
         title: winnerTitle(room.winner),
-        copy: "Start a new game from the room panel when the table is ready.",
+        copy: "Reset the room, then players can switch teams before the next game.",
       };
     }
 
@@ -573,6 +573,10 @@
 
     if (room.status === "playing" && previousRoom.status === "waiting") {
       resetLog("Game started. Round 1.");
+    }
+
+    if (room.status === "waiting" && previousRoom.status !== "waiting") {
+      resetLog("Game reset. Players can switch teams before the next game.");
     }
 
     const latest = room.history?.[0];
