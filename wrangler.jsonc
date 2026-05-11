@@ -37,6 +37,10 @@
       "new_sqlite_classes": [
         "DecryptoRoom"
       ]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": []
     }
   ],
   "compatibility_flags": [
