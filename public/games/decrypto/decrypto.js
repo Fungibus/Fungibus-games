@@ -364,12 +364,14 @@
     const action = currentAction(room);
     els.turnBadge.textContent =
       room.status === "finished"
-        ? `${capitalize(room.winner)} wins`
+        ? winnerTitle(room.winner)
         : hasActiveTurn
-          ? `Round ${room.round} - ${capitalize(room.activeTeam)}`
+          ? room.phase === "clues"
+            ? `Round ${room.round} - Clues`
+            : `Round ${room.round} - ${capitalize(room.activeTeam)}`
           : "Waiting to start";
 
-    if (hasActiveTurn) {
+    if (hasActiveTurn && room.phase !== "clues" && room.status !== "finished") {
       els.turnBadge.dataset.team = room.activeTeam;
     } else {
       delete els.turnBadge.dataset.team;
@@ -380,14 +382,14 @@
       els.whiteScore,
       "white",
       room.teams.white,
-      room.activeTeam === "white" && room.status === "playing",
+      room.activeTeam === "white" && room.status === "playing" && room.phase !== "clues",
       room.you?.team === "white",
     );
     renderScoreCard(
       els.blackScore,
       "black",
       room.teams.black,
-      room.activeTeam === "black" && room.status === "playing",
+      room.activeTeam === "black" && room.status === "playing" && room.phase !== "clues",
       room.you?.team === "black",
     );
     els.newGameButton.textContent = room.status === "waiting" ? "Start game" : "New game";
@@ -404,17 +406,17 @@
       return room.isHost
         ? {
             title: "Set teams, then start",
-            copy: "Players should choose White or Black before the host starts the first code.",
+            copy: "Players can choose White or Black before the host starts the first code.",
           }
         : {
             title: "Choose a team",
-            copy: "Join White or Black. The host can start when everyone is ready.",
+            copy: "Join White or Black. The host can start when the table is ready.",
           };
     }
 
     if (room.status === "finished") {
       return {
-        title: `${capitalize(room.winner)} wins`,
+        title: winnerTitle(room.winner),
         copy: "Start a new game from the room panel when the table is ready.",
       };
     }
@@ -425,67 +427,79 @@
 
     if (!youTeam) {
       return {
-        title: "Choose a team",
-        copy: `${capitalize(activeTeam)} is active. Join a team to submit clues or guesses.`,
+        title: "Watching game",
+        copy: "Teams are locked for this game. You can watch the codes resolve.",
       };
     }
 
-    if (!turn?.cluesSubmitted) {
-      return youTeam === activeTeam
-        ? {
-            title: "Write three clues",
-            copy: `Your team is encrypting code ${visibleCode(turn.code)}.`,
-          }
-        : {
-            title: "Wait for clues",
-            copy: `${capitalize(activeTeam)} is preparing this code. Watch for clues before guessing.`,
-          };
+    if (room.phase === "clues") {
+      const ownTurn = room.turns?.[youTeam];
+      if (room.you?.isEncryptor) {
+        return ownTurn?.cluesSubmitted
+          ? {
+              title: "Clues locked",
+              copy: "Wait for the other Encryptor. Both clue sets resolve after they are ready.",
+            }
+          : {
+              title: "Write three clues",
+              copy: `You are the ${capitalize(youTeam)} Encryptor for code ${visibleCode(
+                ownTurn?.code,
+              )}.`,
+            };
+      }
+
+      return {
+        title: "Encryptors writing",
+        copy: `${encryptorName(room, "white")} and ${encryptorName(
+          room,
+          "black",
+        )} are preparing this round's clues.`,
+      };
     }
 
-    if (youTeam === activeTeam && !turn.homeGuess) {
+    if (youTeam === activeTeam && room.you?.isEncryptor) {
+      return {
+        title: "Your team decodes",
+        copy: "Stay out of the discussion while your teammates decode your clues.",
+      };
+    }
+
+    if (!turn?.homeGuess && youTeam === activeTeam) {
       return {
         title: "Decode your clues",
-        copy: "Enter the three-number code your team intended.",
+        copy: `Enter the code from ${encryptorName(room, activeTeam)}'s clues.`,
       };
     }
 
     if (youTeam !== activeTeam && room.round === 1) {
       return {
         title: "Read and remember",
-        copy: "Interceptions begin in round 2. Use this round to learn how their clues point.",
+        copy: "Interceptions begin in round 2. Use this clue set to learn their patterns.",
       };
     }
 
-    if (youTeam !== activeTeam && !turn.interceptGuess) {
+    if (youTeam !== activeTeam && !turn?.interceptGuess) {
       return {
         title: "Try to intercept",
         copy: `Guess ${capitalize(activeTeam)}'s code before it is revealed.`,
       };
     }
 
-    if (
-      turn.homeGuess &&
-      !turn.revealed &&
-      room.round > 1 &&
-      !turn.interceptGuess &&
-      youTeam === activeTeam
-    ) {
-      return {
-        title: "Waiting for intercept",
-        copy: "Your decode is locked. The other team can now attempt the intercept.",
-      };
-    }
-
-    if (turn.homeGuess && !turn.revealed) {
-      return {
-        title: "Reveal the code",
-        copy: `${capitalize(activeTeam)} has decoded. Reveal when guesses are locked.`,
-      };
+    if (turn?.homeGuess && !turn.revealed) {
+      return youTeam === activeTeam
+        ? {
+            title: "Decode locked",
+            copy: "Waiting for the opposing team before the code is revealed.",
+          }
+        : {
+            title: "Waiting for reveal",
+            copy: "The active code will reveal after guesses are locked.",
+          };
     }
 
     return {
-      title: "Waiting for reveal",
-      copy: "The table will advance after the active code is revealed.",
+      title: "Next code",
+      copy: "The table will advance when this code is complete.",
     };
   }
 
@@ -576,7 +590,7 @@
     }
 
     if (room.winner && previousRoom.winner !== room.winner) {
-      addLogEntry(`${capitalize(room.winner)} wins.`);
+      addLogEntry(winnerTitle(room.winner));
     }
   }
 
@@ -604,7 +618,7 @@
     els.teamButtons.forEach((button) => {
       const team = button.dataset.teamButton;
       button.classList.toggle("is-active", you?.team === team);
-      button.disabled = !state.connected || !state.room;
+      button.disabled = !state.connected || !state.room || state.room.status !== "waiting";
       button.setAttribute("aria-pressed", String(you?.team === team));
     });
   }
@@ -654,7 +668,9 @@
     const name = document.createElement("span");
     name.textContent = player.name;
     const meta = document.createElement("span");
-    meta.textContent = `${player.team || "unassigned"}${player.connected ? "" : " offline"}`;
+    meta.textContent = player.isEncryptor
+      ? `Encryptor${player.connected ? "" : " offline"}`
+      : `${player.team || "unassigned"}${player.connected ? "" : " offline"}`;
     item.append(name, meta);
     return item;
   }
@@ -715,16 +731,21 @@
 
   function renderCurrentTurn() {
     const room = state.room;
-    const turn = room?.turns?.[room.activeTeam];
-    const activeTeam = room?.activeTeam;
+    const activeTeam = currentDisplayTeam(room);
+    const turn = room?.turns?.[activeTeam];
     const youTeam = room?.you?.team;
-    const turnKey = room && turn ? `${room.round}:${activeTeam}:${turn.cluesSubmitted}` : "";
+    const turnKey =
+      room && turn
+        ? `${room.round}:${room.phase}:${activeTeam}:${turn.cluesSubmitted}:${turn.revealed}`
+        : "";
 
     els.turnTitle.textContent =
       room?.status === "finished"
-        ? `${capitalize(room.winner)} wins`
+        ? winnerTitle(room.winner)
         : room?.status === "playing"
-          ? `${capitalize(activeTeam)} encrypts`
+          ? room.phase === "clues"
+            ? `${capitalize(activeTeam)} Encryptor`
+            : `${capitalize(activeTeam)} code`
           : "Waiting";
 
     renderCode(turn?.code || [null, null, null]);
@@ -744,7 +765,9 @@
       state.connected &&
       room?.status === "playing" &&
       !room.winner &&
+      room.phase === "clues" &&
       youTeam === activeTeam &&
+      room.you?.isEncryptor &&
       !turn?.cluesSubmitted;
     els.clueInputs.forEach((input) => {
       input.disabled = !canSendClues;
@@ -753,33 +776,36 @@
     clueButton.disabled = !canSendClues;
     clueButton.classList.toggle("is-primary-action", canSendClues);
 
-    const hasOwnGuess = youTeam === activeTeam ? turn?.homeGuess : turn?.interceptGuess;
+    const isHomeTeam = youTeam === room?.activeTeam;
+    const hasOwnGuess = isHomeTeam ? turn?.homeGuess : turn?.interceptGuess;
     const canGuess =
       state.connected &&
       room?.status === "playing" &&
       !room.winner &&
+      room.phase !== "clues" &&
       Boolean(youTeam) &&
       turn?.cluesSubmitted &&
       !turn.revealed &&
       !hasOwnGuess &&
-      (youTeam === activeTeam || room.round > 1);
+      ((isHomeTeam && !room.you?.isEncryptor) || (!isHomeTeam && room.round > 1));
 
     els.guessInputs.forEach((select) => {
       select.disabled = !canGuess;
     });
     els.guessButton.disabled = !canGuess;
-    els.guessButton.textContent = youTeam === activeTeam ? "Decode" : "Intercept";
+    els.guessButton.textContent = isHomeTeam ? "Decode" : "Intercept";
     els.guessButton.classList.toggle("is-primary-action", canGuess);
 
     const canReveal =
       state.connected &&
       room?.status === "playing" &&
       !room.winner &&
+      room.phase !== "clues" &&
       turn?.cluesSubmitted &&
       turn?.homeGuess &&
       (room.round === 1 || turn.interceptGuess) &&
       !turn.revealed &&
-      (youTeam === activeTeam || room.isHost);
+      (isHomeTeam || room.isHost);
     els.revealButton.disabled = !canReveal;
     els.revealButton.classList.toggle("is-primary-action", canReveal);
     renderGuessHint();
@@ -835,12 +861,24 @@
     const enabled = !els.guessButton.disabled;
 
     els.guessHint.classList.toggle("is-warning", hasDuplicate && enabled);
-    els.guessHint.textContent =
-      hasDuplicate && enabled
-        ? "Use three different numbers."
-        : enabled
-          ? "Choose three different numbers, then submit."
-          : "Guessing opens when the active clues are ready.";
+    if (hasDuplicate && enabled) {
+      els.guessHint.textContent = "Use three different numbers.";
+      return;
+    }
+    if (enabled) {
+      els.guessHint.textContent = "Choose three different numbers, then submit.";
+      return;
+    }
+    const room = state.room;
+    if (room?.phase === "clues") {
+      els.guessHint.textContent = "Guessing opens after both Encryptors send clues.";
+      return;
+    }
+    if (room?.you?.isEncryptor && room.you.team === room.activeTeam) {
+      els.guessHint.textContent = "The Encryptor cannot decode their own clues.";
+      return;
+    }
+    els.guessHint.textContent = "Guessing opens when the active clues are ready.";
   }
 
   function renderHistory() {
@@ -927,6 +965,20 @@
 
   function visibleCode(code = []) {
     return code.map((digit) => digit || "?").join("-");
+  }
+
+  function currentDisplayTeam(room) {
+    if (!room) return null;
+    if (room.phase === "clues" && room.you?.team) return room.you.team;
+    return room.activeTeam;
+  }
+
+  function encryptorName(room, team) {
+    return room?.encryptors?.[team]?.name || `${capitalize(team)} Encryptor`;
+  }
+
+  function winnerTitle(winner) {
+    return winner === "tie" ? "Tie game" : `${capitalize(winner)} wins`;
   }
 
   function capitalize(value) {
