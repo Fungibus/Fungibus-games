@@ -26,11 +26,14 @@ public/
   shared/                    Shared browser styles and game registry
   codenames/                 Stable public route for /codenames/
   games/codenames/           Codenames frontend assets
+  decrypto/                  Stable public route for /decrypto/
+  games/decrypto/            Decrypto frontend assets
 
 src/
   index.js                   Worker entrypoint and top-level API dispatch
   shared/                    Worker helpers shared across games
   games/codenames/           Codenames API routes, rules, words, and room Durable Object
+  games/decrypto/            Decrypto API routes, rules, words, and room Durable Object
 ```
 
 ## Adding a Game

@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="Decrypto, a shared browser team code game."
+    >
+    <title>Decrypto</title>
+    <link rel="stylesheet" href="/shared/styles.css">
+    <link rel="stylesheet" href="/games/decrypto/decrypto.css">
+    <script src="/games/decrypto/decrypto.js" defer></script>
+  </head>
+  <body>
+    <header class="game-header">
+      <a class="home-link" href="/">Mini Game Projects</a>
+      <div class="room-strip" aria-live="polite">
+        <span id="connectionLabel" class="connection-dot is-offline"></span>
+        <span id="roomLabel">No room</span>
+      </div>
+    </header>
+
+    <main class="game-shell">
+      <section class="board-section" aria-label="Decrypto table">
+        <section class="status-rail" aria-label="Current game status">
+          <div class="turn-block">
+            <div id="turnBadge" class="turn-banner">No game</div>
+            <div>
+              <p class="eyebrow">Current action</p>
+              <h1 id="actionTitle">Create a room</h1>
+              <p id="actionCopy" class="action-copy">Invite players, choose teams, then start the first code.</p>
+            </div>
+          </div>
+
+          <div class="score-board" aria-label="Score">
+            <div id="whiteScore" class="score-card" data-team="white"></div>
+            <div id="blackScore" class="score-card" data-team="black"></div>
+          </div>
+        </section>
+
+        <section class="keyword-workspace" aria-labelledby="keywords-title">
+          <div class="workspace-header">
+            <div>
+              <p class="eyebrow">Keywords</p>
+              <h2 id="keywords-title">Your private screen</h2>
+            </div>
+          </div>
+          <div id="keywordGrid" class="keyword-grid" aria-label="Team keywords"></div>
+        </section>
+
+        <section class="turn-console" aria-labelledby="turn-title">
+          <div class="turn-console-head">
+            <div>
+              <p class="eyebrow">Active code</p>
+              <h2 id="turn-title">Waiting</h2>
+            </div>
+            <div id="codeDisplay" class="code-display" aria-label="Code"></div>
+          </div>
+
+          <div id="clueDisplay" class="clue-display" aria-live="polite"></div>
+
+          <div class="action-grid">
+            <form id="clueForm" class="clue-form">
+              <label>
+                <span>Clue 1</span>
+                <input data-clue-input="0" maxlength="36" autocomplete="off" spellcheck="false">
+              </label>
+              <label>
+                <span>Clue 2</span>
+                <input data-clue-input="1" maxlength="36" autocomplete="off" spellcheck="false">
+              </label>
+              <label>
+                <span>Clue 3</span>
+                <input data-clue-input="2" maxlength="36" autocomplete="off" spellcheck="false">
+              </label>
+              <button type="submit">Send clues</button>
+            </form>
+
+            <form id="guessForm" class="guess-form">
+              <div class="code-picker">
+                <label>
+                  <span>First</span>
+                  <select data-guess-input="0" aria-label="First code number"></select>
+                </label>
+                <label>
+                  <span>Second</span>
+                  <select data-guess-input="1" aria-label="Second code number"></select>
+                </label>
+                <label>
+                  <span>Third</span>
+                  <select data-guess-input="2" aria-label="Third code number"></select>
+                </label>
+              </div>
+              <p id="guessHint" class="form-hint">Choose three different numbers.</p>
+              <div class="guess-actions">
+                <button id="guessButton" type="submit">Decode</button>
+                <button id="revealButton" class="secondary" type="button">Reveal</button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <section class="history-section" aria-labelledby="history-title">
+          <div class="workspace-header">
+            <div>
+              <p class="eyebrow">Rounds</p>
+              <h2 id="history-title">History</h2>
+            </div>
+          </div>
+          <div id="historyList" class="history-list"></div>
+        </section>
+      </section>
+
+      <aside class="room-panel" aria-label="Decrypto room controls">
+        <div class="section-header compact">
+          <p class="eyebrow">Room</p>
+          <h2>Decrypto</h2>
+        </div>
+
+        <form id="roomForm" class="stacked-form">
+          <label>
+            <span>Name</span>
+            <input id="playerName" name="playerName" maxlength="24" autocomplete="name">
+          </label>
+          <button id="createRoomButton" type="submit">Create room</button>
+        </form>
+
+        <div id="shareBlock" class="share-block" hidden>
+          <label>
+            <span>Share link</span>
+            <input id="shareUrl" readonly aria-label="Share link">
+          </label>
+          <button id="copyShareButton" class="secondary" type="button" disabled>Copy link</button>
+        </div>
+
+        <div id="gameControlBlock" class="button-row">
+          <button id="newGameButton" type="button">Start game</button>
+        </div>
+
+        <div class="team-controls" aria-label="Player settings">
+          <button class="secondary" type="button" data-team-button="white">White Team</button>
+          <button class="secondary" type="button" data-team-button="black">Black Team</button>
+        </div>
+
+        <section class="players-block" aria-labelledby="teams-title">
+          <h2 id="teams-title">Teams</h2>
+          <div id="teamsList" class="teams-list"></div>
+        </section>
+
+        <div class="panel-block">
+          <h2>Log</h2>
+          <ol id="actionLog" class="action-log" aria-live="polite">
+            <li>Create a room or open a shared link.</li>
+          </ol>
+        </div>
+      </aside>
+    </main>
+  </body>
+</html>
