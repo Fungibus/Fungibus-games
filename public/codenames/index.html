@@ -21,10 +21,9 @@
     </header>
 
     <main class="game-shell">
-      <section class="room-panel" aria-labelledby="room-title">
+      <section class="room-panel" aria-label="Codename Grid room controls">
         <div class="section-header compact">
           <p class="eyebrow">Codename Grid</p>
-          <h1 id="room-title">Room</h1>
         </div>
 
         <form id="roomForm" class="stacked-form">
@@ -44,16 +43,14 @@
         </div>
 
         <div id="gameControlBlock" class="button-row">
-          <button id="newGameButton" type="button">New game</button>
+          <button id="newGameButton" type="button">Start game</button>
         </div>
 
         <div class="panel-block">
-          <div class="card-topline tight">
-            <h2>Turn</h2>
-            <span id="turnBadge" class="status">-</span>
-          </div>
-          <p id="clueText" class="muted-line">No clue</p>
-          <p id="statusText" class="muted-line" role="status">Create a room or open a shared link.</p>
+          <h2>Log</h2>
+          <ol id="actionLog" class="action-log" aria-live="polite">
+            <li>Create a room or open a shared link.</li>
+          </ol>
         </div>
 
         <div class="team-controls" aria-label="Player settings">
@@ -71,6 +68,7 @@
 
       <section class="board-section" aria-label="Board">
         <div class="board-topline">
+          <div id="turnBadge" class="turn-banner">No game</div>
           <div class="score-strip" aria-label="Remaining cards">
             <span id="redScore">Red -</span>
             <span id="blueScore">Blue -</span>

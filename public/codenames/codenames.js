@@ -7,6 +7,7 @@
     room: null,
     playerToken: getToken(),
     connected: false,
+    logEntries: ["Create a room or open a shared link."],
   };
 
   const els = {
@@ -21,8 +22,7 @@
     connectionLabel: document.querySelector("#connectionLabel"),
     roomLabel: document.querySelector("#roomLabel"),
     turnBadge: document.querySelector("#turnBadge"),
-    clueText: document.querySelector("#clueText"),
-    statusText: document.querySelector("#statusText"),
+    actionLog: document.querySelector("#actionLog"),
     clueForm: document.querySelector("#clueForm"),
     clueWord: document.querySelector("#clueWord"),
     clueCount: document.querySelector("#clueCount"),
@@ -196,7 +196,9 @@
       socket.addEventListener("message", (event) => {
         const payload = JSON.parse(event.data);
         if (payload.type === "state") {
+          const previousRoom = state.room;
           state.room = payload.room;
+          logRoomChanges(previousRoom, state.room);
           syncControlsFromServer();
           render();
         }
@@ -314,6 +316,7 @@
     renderConnection();
     renderHostControls();
     renderRoomInfo();
+    renderActionLog();
     renderTeamControls();
     renderTeams();
     renderBoard();
@@ -330,14 +333,13 @@
   function renderRoomInfo() {
     const room = state.room;
     const turn = room?.turn || "-";
-    els.turnBadge.textContent = room ? turn.toUpperCase() : "-";
+    els.turnBadge.textContent = room ? `Turn ${capitalize(turn)}` : "No game";
     els.turnBadge.dataset.team = turn;
 
     if (!room) {
-      els.clueText.textContent = "No clue";
       els.redScore.textContent = "Red -";
       els.blueScore.textContent = "Blue -";
-      els.newGameButton.textContent = "New game";
+      els.newGameButton.textContent = "Start game";
       els.clueForm.querySelectorAll("input, button").forEach((element) => {
         element.disabled = true;
       });
@@ -347,11 +349,9 @@
       return;
     }
 
-    const clue = room.clue ? `${room.clue.word} ${room.clue.count}` : "No clue";
-    els.clueText.textContent = room.winner ? `${room.winner.toUpperCase()} wins` : clue;
     els.redScore.textContent = `Red ${room.remaining.red}`;
     els.blueScore.textContent = `Blue ${room.remaining.blue}`;
-    els.newGameButton.textContent = "New game";
+    els.newGameButton.textContent = room.status === "waiting" ? "Start game" : "New game";
 
     const canSubmitClue =
       room.status === "playing" &&
@@ -365,6 +365,81 @@
     const canEndTurn = room.status === "playing" && !room.winner && room.you?.team === room.turn;
     els.endTurnButton.disabled = !canEndTurn;
     els.newGameButton.disabled = !state.connected || !room.isHost;
+  }
+
+  function renderActionLog() {
+    els.actionLog.replaceChildren(
+      ...state.logEntries.map((entry) => {
+        const item = document.createElement("li");
+        item.textContent = entry;
+        return item;
+      }),
+    );
+    els.actionLog.scrollTop = els.actionLog.scrollHeight;
+  }
+
+  function logRoomChanges(previousRoom, room) {
+    if (!room) return;
+
+    if (!previousRoom) {
+      if (room.status === "playing") {
+        addLogEntry(`Joined active game. Turn ${capitalize(room.turn)}.`);
+      }
+      if (room.winner) {
+        addLogEntry(`${capitalize(room.winner)} wins.`);
+      }
+      return;
+    }
+
+    const boardChanged = boardWordsSignature(previousRoom.board) !== boardWordsSignature(room.board);
+    if (room.status === "playing" && previousRoom.status === "waiting") {
+      addLogEntry(`Game started. ${capitalize(room.turn)} goes first.`);
+    } else if (room.status === "playing" && boardChanged && previousRoom.board?.length) {
+      addLogEntry(`New game. ${capitalize(room.turn)} goes first.`);
+    }
+
+    if (clueSignature(previousRoom.clue) !== clueSignature(room.clue) && room.clue) {
+      addLogEntry(`${capitalize(room.clue.team || room.turn)} clue: ${room.clue.word} ${room.clue.count}`);
+    }
+
+    const guessingTeam = previousRoom.turn || room.turn;
+    (room.board || []).forEach((card, index) => {
+      const previousCard = previousRoom.board?.[index];
+      if (card.revealed && previousCard && !previousCard.revealed) {
+        addLogEntry(`${capitalize(guessingTeam)} guessed: ${card.word}`);
+      }
+    });
+
+    if (room.winner && previousRoom.winner !== room.winner) {
+      addLogEntry(`${capitalize(room.winner)} wins.`);
+    }
+
+    if (
+      room.status === "playing" &&
+      !room.winner &&
+      previousRoom.turn !== room.turn &&
+      previousRoom.status === "playing"
+    ) {
+      addLogEntry(`Turn ${capitalize(room.turn)}.`);
+    }
+  }
+
+  function addLogEntry(message) {
+    if (!message) return;
+    const lastEntry = state.logEntries.at(-1);
+    if (lastEntry === message) return;
+    state.logEntries.push(message);
+    if (state.logEntries.length > 80) {
+      state.logEntries.splice(0, state.logEntries.length - 80);
+    }
+  }
+
+  function boardWordsSignature(board = []) {
+    return board.map((card) => card.word).join("|");
+  }
+
+  function clueSignature(clue) {
+    return clue ? `${clue.team || ""}:${clue.word}:${clue.count}` : "";
   }
 
   function renderHostControls() {
@@ -500,7 +575,13 @@
   }
 
   function setStatus(message) {
-    els.statusText.textContent = message;
+    if (!shouldLogStatus(message)) return;
+    addLogEntry(message);
+    renderActionLog();
+  }
+
+  function shouldLogStatus(message) {
+    return !["Connected.", "Disconnected."].includes(message);
   }
 
   function setBusy(isBusy) {
@@ -510,5 +591,9 @@
 
   function isTeam(team) {
     return team === "red" || team === "blue";
+  }
+
+  function capitalize(value) {
+    return String(value || "").charAt(0).toUpperCase() + String(value || "").slice(1);
   }
 })();
