@@ -16,6 +16,13 @@ export const games = [
     apiNamespace: "/api/skull",
     description:
       "A shared bluffing table for placing flowers and skulls, bidding high, and flipping just enough discs to survive.",
+    slug: "decrypto",
+    title: "Decrypto",
+    status: "Playable",
+    route: "/decrypto/",
+    apiNamespace: "/api/decrypto",
+    description:
+      "A shared team code table with secret keyword screens, clue rounds, interception guesses, and automatic score tracks.",
   },
   {
     slug: "wordle",

@@ -22,6 +22,8 @@
       {
         "name": "SKULL_ROOMS",
         "class_name": "SkullRoom"
+        "name": "DECRYPTO_ROOMS",
+        "class_name": "DecryptoRoom"
       }
     ]
   },
@@ -36,6 +38,7 @@
       "tag": "v2",
       "new_sqlite_classes": [
         "SkullRoom"
+        "DecryptoRoom"
       ]
     }
   ],

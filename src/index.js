@@ -4,6 +4,10 @@ import { handleSkullApiRequest } from "./games/skull/routes.js";
 
 export { CodenameRoom } from "./games/codenames/room.js";
 export { SkullRoom } from "./games/skull/room.js";
+import { handleDecryptoApiRequest } from "./games/decrypto/routes.js";
+
+export { CodenameRoom } from "./games/codenames/room.js";
+export { DecryptoRoom } from "./games/decrypto/room.js";
 
 export default {
   async fetch(request, env) {
@@ -16,6 +20,8 @@ export default {
 
     if (url.pathname.startsWith("/api/skull/")) {
       const response = await handleSkullApiRequest(request, env, url);
+    if (url.pathname.startsWith("/api/decrypto/")) {
+      const response = await handleDecryptoApiRequest(request, env, url);
       return response ?? json({ error: "Not found." }, 404);
     }
 
