@@ -18,6 +18,15 @@ export const games = [
       "A shared team code table with secret keyword screens, clue rounds, interception guesses, and automatic score tracks.",
   },
   {
+    slug: "skull",
+    title: "Skull",
+    status: "Playable",
+    route: "/skull/",
+    apiNamespace: "/api/skull",
+    description:
+      "A shared bluffing table with hidden flowers and skulls, rising bids, forced reveals, lives, eliminations, and two-challenge wins.",
+  },
+  {
     slug: "wordle",
     title: "Wordle",
     status: "Planned",

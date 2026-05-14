@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="Skull, a shared browser bluffing game with flowers and skulls."
+    >
+    <title>Skull</title>
+    <link rel="stylesheet" href="/shared/styles.css">
+    <link rel="stylesheet" href="/games/skull/skull.css">
+    <script src="/games/skull/skull.js" defer></script>
+  </head>
+  <body>
+    <header class="game-header">
+      <a class="home-link" href="/">Mini Game Projects</a>
+      <div class="top-status" aria-live="polite">
+        <span id="connectionLabel" class="connection-dot is-offline" aria-hidden="true"></span>
+        <span id="roomLabel">No room</span>
+      </div>
+
+      <form id="roomForm" class="room-form">
+        <label>
+          <span>Name</span>
+          <input id="playerName" name="playerName" maxlength="24" autocomplete="name">
+        </label>
+        <button id="createRoomButton" type="submit">Create</button>
+      </form>
+
+      <div id="shareBlock" class="share-block" hidden>
+        <input id="shareUrl" readonly aria-label="Share link">
+        <button id="copyShareButton" class="secondary" type="button" disabled>Copy</button>
+      </div>
+
+      <button id="newGameButton" class="secondary" type="button">Start</button>
+    </header>
+
+    <main class="skull-shell">
+      <div class="game-layout">
+        <section class="table-wrap" aria-label="Skull table">
+          <div class="table-meta" aria-live="polite">
+            <p id="phaseEyebrow">Room</p>
+            <h1 id="phaseTitle">Create a room</h1>
+            <p id="phaseCopy">Invite 3-6 players, then start.</p>
+            <span id="bidBadge">No bid</span>
+          </div>
+          <div id="tableGrid" class="table-grid" aria-live="polite"></div>
+        </section>
+
+        <aside class="round-log" aria-label="Game log">
+          <h2>Log</h2>
+          <ol id="roundLog" aria-live="polite">
+            <li>Create or join.</li>
+          </ol>
+        </aside>
+      </div>
+
+      <section class="play-strip" aria-label="Your controls">
+        <div id="handList" class="hand-list" aria-label="Your discs"></div>
+        <div id="actionPanel" class="action-panel" aria-live="polite"></div>
+        <p id="noticeLine" class="notice-line" aria-live="polite">Create a room or open a shared link.</p>
+      </section>
+    </main>
+  </body>
+</html>
