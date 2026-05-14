@@ -27,6 +27,15 @@ export const games = [
       "A shared bluffing table with hidden flowers and skulls, rising bids, forced reveals, lives, eliminations, and two-challenge wins.",
   },
   {
+    slug: "just-one",
+    title: "Just One",
+    status: "Playable",
+    route: "/just-one/",
+    apiNamespace: "/api/just-one",
+    description:
+      "A cooperative clue table with rotating guessers, hidden mystery words, duplicate clue removal, and a 13-round team score.",
+  },
+  {
     slug: "wordle",
     title: "Wordle",
     status: "Planned",

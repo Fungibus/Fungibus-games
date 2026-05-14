@@ -24,6 +24,10 @@
         "class_name": "DecryptoRoom"
       },
       {
+        "name": "JUST_ONE_ROOMS",
+        "class_name": "JustOneRoom"
+      },
+      {
         "name": "SKULL_ROOMS",
         "class_name": "SkullRoom"
       }
@@ -50,6 +54,12 @@
       "tag": "v3",
       "new_sqlite_classes": [
         "SkullRoom"
+      ]
+    },
+    {
+      "tag": "v4",
+      "new_sqlite_classes": [
+        "JustOneRoom"
       ]
     }
   ],
