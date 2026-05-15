@@ -36,6 +36,15 @@ export const games = [
       "A shared card table where players take points or pay counters, build runs, hide counter counts, and race to the lowest final score.",
   },
   {
+    slug: "magical-athlete",
+    title: "Magical Athlete",
+    status: "Playable",
+    route: "/magical-athlete/",
+    apiNamespace: "/api/magical-athlete",
+    description:
+      "A chaotic four-race festival with drafted magical racers, oddball powers, dice, trips, trophies, and a wild track.",
+  },
+  {
     slug: "just-one",
     title: "Just One",
     status: "Playable",

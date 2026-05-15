@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="Magical Athlete, a shared browser racing game with drafted racers and chaotic powers."
+    >
+    <title>Magical Athlete</title>
+    <link rel="stylesheet" href="/games/magical-athlete/magical-athlete.css">
+    <script src="/games/magical-athlete/magical-athlete.js" defer></script>
+  </head>
+  <body>
+    <header class="race-topbar">
+      <a class="home-link" href="/">Mini Game Projects</a>
+      <div class="room-chip">
+        <span id="connectionDot" class="connection-dot" aria-hidden="true"></span>
+        <span id="roomLabel">No room</span>
+      </div>
+
+      <form id="roomForm" class="room-form">
+        <label>
+          <span>Name</span>
+          <input id="playerName" maxlength="24" autocomplete="name">
+        </label>
+        <button id="createRoomButton" type="submit">Create</button>
+      </form>
+
+      <label id="doubleVariantLabel" class="toggle-line">
+        <input id="doubleVariant" type="checkbox">
+        <span>3-player double racer</span>
+      </label>
+
+      <div id="shareBlock" class="share-block" hidden>
+        <input id="shareUrl" readonly aria-label="Share link">
+        <button id="copyShareButton" type="button">Copy</button>
+      </div>
+
+      <button id="mainGameButton" type="button">Start</button>
+    </header>
+
+    <main class="athlete-shell">
+      <section class="race-banner" aria-live="polite">
+        <div>
+          <p id="phaseLabel" class="label">Room</p>
+          <h1 id="phaseTitle">Magical Athlete</h1>
+        </div>
+        <p id="phaseDetail">Create a room, draft racers, then run four ridiculous races.</p>
+      </section>
+
+      <section class="race-layout">
+        <aside class="scoreboard" aria-label="Scoreboard">
+          <div class="panel-heading">
+            <p class="label">Teams</p>
+            <h2>Festival Standings</h2>
+          </div>
+          <div id="playersList" class="players-list"></div>
+        </aside>
+
+        <section class="track-panel" aria-label="Race track">
+          <div id="draftPanel" class="draft-panel"></div>
+          <div id="trackBoard" class="track-board"></div>
+        </section>
+
+        <aside class="control-panel" aria-label="Actions">
+          <div class="panel-heading">
+            <p class="label">Action</p>
+            <h2 id="actionTitle">Waiting</h2>
+          </div>
+          <div id="actionPanel" class="action-panel"></div>
+          <div id="powersPanel" class="powers-panel" aria-label="Relevant powers"></div>
+          <ol id="raceLog" class="race-log" aria-live="polite"></ol>
+        </aside>
+      </section>
+    </main>
+
+    <p id="noticeLine" class="notice-line" aria-live="polite">Create a room or open a shared link.</p>
+  </body>
+</html>

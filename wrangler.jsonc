@@ -34,6 +34,10 @@
       {
         "name": "NO_THANKS_ROOMS",
         "class_name": "NoThanksRoom"
+      },
+      {
+        "name": "MAGICAL_ATHLETE_ROOMS",
+        "class_name": "MagicalAthleteRoom"
       }
     ]
   },
@@ -70,6 +74,12 @@
       "tag": "v5",
       "new_sqlite_classes": [
         "NoThanksRoom"
+      ]
+    },
+    {
+      "tag": "v6",
+      "new_sqlite_classes": [
+        "MagicalAthleteRoom"
       ]
     }
   ],
