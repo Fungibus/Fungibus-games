@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="No Thanks!, a shared browser card game about taking points or paying counters."
+    >
+    <title>No Thanks!</title>
+    <link rel="stylesheet" href="/shared/styles.css">
+    <link rel="stylesheet" href="/games/no-thanks/no-thanks.css">
+    <script src="/games/no-thanks/no-thanks.js" defer></script>
+  </head>
+  <body>
+    <header class="game-header">
+      <div class="header-brand">
+        <a class="home-link" href="/">Mini Game Projects</a>
+        <div class="top-status" aria-live="polite">
+          <span id="connectionLabel" class="connection-dot is-offline" aria-hidden="true"></span>
+          <span id="roomLabel">No room</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <form id="roomForm" class="room-form">
+          <label>
+            <span>Name</span>
+            <input id="playerName" name="playerName" maxlength="24" autocomplete="name">
+          </label>
+          <button id="createRoomButton" type="submit">Create</button>
+        </form>
+
+        <div id="shareBlock" class="share-block" hidden>
+          <input id="shareUrl" readonly aria-label="Share link">
+          <button id="copyShareButton" class="secondary" type="button" disabled>Copy</button>
+        </div>
+
+        <button id="newGameButton" class="secondary" type="button">Start</button>
+      </div>
+    </header>
+
+    <main class="no-thanks-shell">
+      <section class="table-panel" aria-label="No Thanks table">
+        <div class="table-meta" aria-live="polite">
+          <p id="phaseEyebrow">Room</p>
+          <h1 id="phaseTitle">Create a room</h1>
+          <p id="phaseCopy">Invite 3-7 players, then start.</p>
+          <span id="deckBadge">No deck</span>
+        </div>
+
+        <div class="center-stage">
+          <div id="currentCard" class="current-card" aria-live="polite">
+            <span>No card</span>
+          </div>
+          <div id="counterPile" class="counter-pile" aria-label="Counters on card"></div>
+          <div id="actionPanel" class="action-panel" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="players-panel" aria-label="Players">
+        <div id="playersGrid" class="players-grid" aria-live="polite"></div>
+      </section>
+
+      <aside class="round-log" aria-label="Game log">
+        <h2>Log</h2>
+        <ol id="roundLog" aria-live="polite">
+          <li>Create or join.</li>
+        </ol>
+      </aside>
+    </main>
+
+    <p id="noticeLine" class="notice-line" aria-live="polite">Create a room or open a shared link.</p>
+  </body>
+</html>
