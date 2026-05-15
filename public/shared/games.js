@@ -27,6 +27,15 @@ export const games = [
       "A shared bluffing table with hidden flowers and skulls, rising bids, forced reveals, lives, eliminations, and two-challenge wins.",
   },
   {
+    slug: "no-thanks",
+    title: "No Thanks!",
+    status: "Playable",
+    route: "/no-thanks/",
+    apiNamespace: "/api/no-thanks",
+    description:
+      "A shared card table where players take points or pay counters, build runs, hide counter counts, and race to the lowest final score.",
+  },
+  {
     slug: "just-one",
     title: "Just One",
     status: "Playable",

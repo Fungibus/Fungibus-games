@@ -30,6 +30,10 @@
       {
         "name": "SKULL_ROOMS",
         "class_name": "SkullRoom"
+      },
+      {
+        "name": "NO_THANKS_ROOMS",
+        "class_name": "NoThanksRoom"
       }
     ]
   },
@@ -60,6 +64,12 @@
       "tag": "v4",
       "new_sqlite_classes": [
         "JustOneRoom"
+      ]
+    },
+    {
+      "tag": "v5",
+      "new_sqlite_classes": [
+        "NoThanksRoom"
       ]
     }
   ],
