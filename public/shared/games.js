@@ -1,5 +1,14 @@
 export const games = [
   {
+    slug: "polygon-forge",
+    title: "Polygon Forge",
+    status: "Playable",
+    route: "/polygon-forge/",
+    apiNamespace: null,
+    description:
+      "A singleplayer clicker where each side adds a roguelike artifact draft, building synergies from triangle to circle.",
+  },
+  {
     slug: "codenames",
     title: "Codename Grid",
     status: "Playable",

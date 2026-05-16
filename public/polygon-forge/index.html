@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="Polygon Forge, a singleplayer incremental roguelike clicker about evolving shapes into a circle."
+    >
+    <title>Polygon Forge</title>
+    <link rel="stylesheet" href="/shared/styles.css">
+    <link rel="stylesheet" href="/games/polygon-forge/polygon-forge.css">
+    <script src="/games/polygon-forge/polygon-forge.js" defer></script>
+  </head>
+  <body>
+    <header class="forge-header">
+      <a class="home-link" href="/">Mini Game Projects</a>
+      <strong>Polygon Forge</strong>
+      <button id="resetButton" class="secondary reset-button" type="button">Reset</button>
+    </header>
+
+    <main class="forge-shell">
+      <section class="status-bar" aria-label="Current stats">
+        <div>
+          <span>Points</span>
+          <strong id="pointsValue">0</strong>
+        </div>
+        <div>
+          <span>Click</span>
+          <strong id="clickValue">1</strong>
+        </div>
+        <div>
+          <span>Passive</span>
+          <strong id="secondValue">0</strong>
+        </div>
+        <div>
+          <span>Sides</span>
+          <strong id="sidesValue">3 / 64</strong>
+        </div>
+        <div>
+          <span>Artifacts</span>
+          <strong id="artifactCountValue">0</strong>
+        </div>
+      </section>
+
+      <section class="forge-layout" aria-label="Polygon Forge game">
+        <section class="play-surface" aria-labelledby="shapeHeading">
+          <div class="play-topline">
+            <div>
+              <p class="eyebrow">Current form</p>
+              <h1 id="shapeHeading">Triangle</h1>
+            </div>
+            <p id="milestoneLine" class="milestone-line" aria-live="polite">
+              Triangle found. Start shaping.
+            </p>
+          </div>
+
+          <button
+            id="shapeButton"
+            class="shape-button"
+            type="button"
+            aria-label="Forge polygon for points"
+          >
+            <svg class="shape-svg" viewBox="0 0 200 200" aria-hidden="true">
+              <defs>
+                <linearGradient id="shapeGradient" x1="32" y1="20" x2="168" y2="180">
+                  <stop id="shapeStopA" offset="0%" stop-color="#f05d5e"></stop>
+                  <stop id="shapeStopB" offset="100%" stop-color="#2f8f83"></stop>
+                </linearGradient>
+                <filter id="shapeGlow" x="-30%" y="-30%" width="160%" height="160%">
+                  <feGaussianBlur stdDeviation="4" result="blur"></feGaussianBlur>
+                  <feMerge>
+                    <feMergeNode in="blur"></feMergeNode>
+                    <feMergeNode in="SourceGraphic"></feMergeNode>
+                  </feMerge>
+                </filter>
+              </defs>
+              <polygon
+                id="shapePolygon"
+                class="shape-polygon"
+                points=""
+                fill="url(#shapeGradient)"
+                filter="url(#shapeGlow)"
+              ></polygon>
+            </svg>
+            <span id="clickBurstLayer" class="click-burst-layer" aria-hidden="true"></span>
+          </button>
+
+          <p id="comboBadge" class="combo-badge" aria-live="polite"></p>
+
+          <div class="goal-panel">
+            <div class="goal-copy">
+              <span id="nextShapeLabel">Next: square</span>
+              <strong id="nextSideCost">18 points</strong>
+            </div>
+            <div class="progress-track" aria-label="Progress to circle">
+              <span id="circleProgress"></span>
+            </div>
+            <div class="progress-track next-track" aria-label="Progress to next side">
+              <span id="nextSideProgress"></span>
+            </div>
+          </div>
+        </section>
+
+        <aside class="control-column" aria-label="Upgrades and artifacts">
+          <section id="winPanel" class="win-panel" hidden>
+            <p class="eyebrow">Circle achieved</p>
+            <h2>64 sides forged</h2>
+            <p id="winSummary">The polygon has become a circle.</p>
+          </section>
+
+          <section id="draftPanel" class="draft-panel" aria-labelledby="draftTitle" hidden>
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Artifact draft</p>
+                <h2 id="draftTitle">Choose one</h2>
+              </div>
+              <span id="draftChoiceCount" class="status">3 choices</span>
+            </div>
+            <div id="draftChoices" class="draft-choices"></div>
+          </section>
+
+          <section class="upgrade-panel" aria-labelledby="upgradeTitle">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Upgrades</p>
+                <h2 id="upgradeTitle">Studio tools</h2>
+              </div>
+            </div>
+            <div id="upgradeList" class="upgrade-list"></div>
+          </section>
+
+          <section class="artifact-panel" aria-labelledby="artifactTitle">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Build</p>
+                <h2 id="artifactTitle">Artifacts</h2>
+              </div>
+            </div>
+            <div id="artifactList" class="artifact-list">
+              <p class="empty-line">Add a side to draft your first artifact.</p>
+            </div>
+          </section>
+        </aside>
+      </section>
+    </main>
+  </body>
+</html>
