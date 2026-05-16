@@ -67,18 +67,16 @@ function showLoadingOverlay(gameTitle) {
   overlay.className = "game-loading";
   overlay.setAttribute("role", "status");
   overlay.setAttribute("aria-live", "polite");
+  overlay.setAttribute("aria-label", `Loading ${gameTitle}`);
 
   const loadingCard = document.createElement("div");
   loadingCard.className = "game-loading-card";
 
-  const spinner = document.createElement("span");
-  spinner.className = "game-loading-spinner";
-  spinner.setAttribute("aria-hidden", "true");
+  const loader = document.createElement("span");
+  loader.className = "game-loading-mark";
+  loader.setAttribute("aria-hidden", "true");
 
-  const label = document.createElement("span");
-  label.textContent = `Loading ${gameTitle}`;
-
-  loadingCard.append(spinner, label);
+  loadingCard.append(loader);
   overlay.append(loadingCard);
   document.body.append(overlay);
 
