@@ -1,5 +1,14 @@
 export const games = [
   {
+    slug: "pond-caster",
+    title: "Pond Caster",
+    status: "Prototype",
+    route: "/pond-caster/",
+    apiNamespace: null,
+    description:
+      "A one-screen arcade fishing prototype about walking the shore, charging casts, and landing bait near moving fish.",
+  },
+  {
     slug: "polygon-forge",
     title: "Polygon Forge",
     status: "Playable",

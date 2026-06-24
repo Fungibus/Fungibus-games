@@ -5,6 +5,17 @@
 }
 
 .intro {
+  max-width: none;
+}
+
+.intro-scene {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(14rem, 19rem);
+  align-items: center;
+  gap: clamp(2rem, 6vw, 4.5rem);
+}
+
+.intro-text {
   max-width: 680px;
 }
 
@@ -21,6 +32,81 @@ h1 {
   margin-bottom: 0;
   color: var(--muted);
   font-size: clamp(1.05rem, 2vw, 1.25rem);
+}
+
+.pixel-art-card {
+  width: min(100%, 19rem);
+  margin: 0 0 0 auto;
+  border: 1px solid rgba(47, 111, 97, 0.18);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(240, 241, 237, 0.72)),
+    var(--surface-soft);
+  box-shadow: var(--shadow);
+  padding: clamp(0.7rem, 2vw, 1rem);
+}
+
+.pixel-mascot {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  image-rendering: pixelated;
+  shape-rendering: crispEdges;
+}
+
+.pixel-outline {
+  fill: #20211f;
+}
+
+.pixel-cap {
+  fill: #d95b4f;
+}
+
+.pixel-cap-dark {
+  fill: #b84a40;
+}
+
+.pixel-spot,
+.pixel-body {
+  fill: #fff4d7;
+}
+
+.pixel-body-dark {
+  fill: #e2c67b;
+}
+
+.pixel-window {
+  fill: #8fc8e8;
+}
+
+.pixel-highlight {
+  fill: #dff4ff;
+}
+
+.pixel-face,
+.pixel-wheel {
+  fill: #2d2f2c;
+}
+
+.pixel-cheek,
+.pixel-flower {
+  fill: #f29a8e;
+}
+
+.pixel-hub {
+  fill: #f7f7f4;
+}
+
+.pixel-flower-stem {
+  fill: #6f9a4c;
+}
+
+.pixel-flower-center {
+  fill: #f4cf55;
+}
+
+.pixel-shadow {
+  fill: rgba(40, 45, 39, 0.12);
 }
 
 .projects {
@@ -286,6 +372,16 @@ h1 {
 
   h1 {
     max-width: 10ch;
+  }
+
+  .intro-scene {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .pixel-art-card {
+    width: min(14rem, 72vw);
+    margin: 0;
   }
 
   .project-grid {

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="Pond Caster, a one-screen arcade fishing prototype about aiming casts at moving fish."
+    >
+    <title>Pond Caster</title>
+    <link rel="stylesheet" href="/shared/styles.css">
+    <link rel="stylesheet" href="/games/pond-caster/pond-caster.css">
+    <script src="/games/pond-caster/pond-caster.js" defer></script>
+  </head>
+  <body>
+    <header class="pond-header">
+      <a class="home-link" href="/">fungibus-games</a>
+      <strong>Pond Caster</strong>
+      <button id="restartButton" class="secondary restart-button" type="button">Restart</button>
+    </header>
+
+    <main class="pond-shell" aria-label="Pond Caster prototype">
+      <section class="pond-hud" aria-label="Run status">
+        <div>
+          <span>Score</span>
+          <strong id="scoreValue">0</strong>
+        </div>
+        <div>
+          <span>Time</span>
+          <strong id="timeValue">90</strong>
+        </div>
+        <div>
+          <span>Combo</span>
+          <strong id="comboValue">x1</strong>
+        </div>
+        <div>
+          <span>Catches</span>
+          <strong id="catchValue">0</strong>
+        </div>
+      </section>
+
+      <section class="pond-stage" aria-label="Playable pond">
+        <canvas id="gameCanvas"></canvas>
+        <div id="messagePanel" class="message-panel" aria-live="polite"></div>
+      </section>
+    </main>
+  </body>
+</html>
