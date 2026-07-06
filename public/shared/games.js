@@ -1,5 +1,23 @@
 export const games = [
   {
+    slug: "fishing-minigames",
+    title: "Fishing Minigames",
+    status: "Prototype",
+    route: "/fishing-minigames/",
+    apiNamespace: null,
+    description:
+      "An empty shell for small fishing minigame experiments.",
+  },
+  {
+    slug: "addictive-fishing",
+    title: "Addictive Fishing",
+    status: "Prototype",
+    route: "/addictive-fishing/",
+    apiNamespace: null,
+    description:
+      "A blocky extraction fishing prototype about catching loot-fish, managing noise, and making it back to the dock.",
+  },
+  {
     slug: "pond-caster",
     title: "Pond Caster",
     status: "Prototype",
@@ -9,6 +27,15 @@ export const games = [
       "A one-screen arcade fishing prototype about walking the shore, charging casts, and landing bait near moving fish.",
   },
   {
+    slug: "fishing-at-the-end-of-the-world",
+    title: "Fishing at the End of the World",
+    status: "Prototype",
+    route: "/fishing-at-the-end-of-the-world/",
+    apiNamespace: null,
+    description:
+      "A survival fishing game about landing salvage, restoring lighthouse echoes, and racing the final storm.",
+  },
+  {
     slug: "polygon-forge",
     title: "Polygon Forge",
     status: "Playable",
@@ -16,6 +43,15 @@ export const games = [
     apiNamespace: null,
     description:
       "A singleplayer clicker where each side adds a roguelike artifact draft, building synergies from triangle to circle.",
+  },
+  {
+    slug: "light-wheel",
+    title: "Light Wheel",
+    status: "Playable",
+    route: "/light-wheel/",
+    apiNamespace: null,
+    description:
+      "A singleplayer timing incremental where stopping a spinning light builds streaks, drafts relics, and banks permanent tickets.",
   },
   {
     slug: "codenames",

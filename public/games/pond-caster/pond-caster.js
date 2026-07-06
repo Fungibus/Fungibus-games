@@ -142,7 +142,7 @@ function resetGame() {
     comboTimer: 0,
     timeLeft: runLength,
     runOver: false,
-    playerAngle: -Math.PI / 2,
+    player: { x: pond.x, y: pond.y + shore.ry },
     aimAngle: -Math.PI / 2,
     mode: "ready",
     charge: 0,
@@ -153,7 +153,7 @@ function resetGame() {
   };
   ripples.length = 0;
   floaters.length = 0;
-  showMessage("Land close to a fish, lead the moving ones, and avoid noisy splashes.");
+  showMessage("WASD to walk the bank, mouse to aim, hold Space or click to cast.");
   updateHud();
 }
 
@@ -205,19 +205,25 @@ function update(dt) {
 }
 
 function updatePlayer(dt) {
-  const left = keys.has("ArrowLeft") || keys.has("KeyA");
-  const right = keys.has("ArrowRight") || keys.has("KeyD");
-  const up = keys.has("ArrowUp") || keys.has("KeyW");
-  const down = keys.has("ArrowDown") || keys.has("KeyS");
-  let direction = 0;
+  let mx = 0;
+  let my = 0;
+  if (keys.has("ArrowLeft") || keys.has("KeyA")) mx -= 1;
+  if (keys.has("ArrowRight") || keys.has("KeyD")) mx += 1;
+  if (keys.has("ArrowUp") || keys.has("KeyW")) my -= 1;
+  if (keys.has("ArrowDown") || keys.has("KeyS")) my += 1;
 
-  if (left) direction -= 1;
-  if (right) direction += 1;
-  if (up) direction -= 0.7;
-  if (down) direction += 0.7;
+  if (mx || my) {
+    const len = Math.hypot(mx, my);
+    const speed = 185 * dt;
+    const p = state.player;
+    const nx = clamp(p.x + (mx / len) * speed, 14, W - 14);
+    const ny = clamp(p.y + (my / len) * speed, 14, H - 14);
+    // ponytail: block water per-axis so you slide along the bank instead of sticking
+    if (!isInsidePond(nx, p.y, 1)) p.x = nx;
+    if (!isInsidePond(p.x, ny, 1)) p.y = ny;
+  }
 
-  state.playerAngle = normalizeAngle(state.playerAngle + direction * dt * 1.55);
-  const player = getPlayerPosition();
+  const player = state.player;
   const targetAngle = Math.atan2(pointer.y - player.y, pointer.x - player.x);
   if (Number.isFinite(targetAngle)) {
     state.aimAngle = targetAngle;
@@ -948,7 +954,7 @@ function shade(hex, amt) {
 }
 
 function getPlayerPosition() {
-  return pointOnEllipse(pond.x, pond.y, shore.rx, shore.ry, state.playerAngle);
+  return state.player;
 }
 
 function steerFish(fish, targetAngle, targetSpeed, dt) {
@@ -1037,11 +1043,6 @@ function ellipsePath(x, y, rx, ry) {
 
 function angleFrom(x, y) {
   return Math.atan2(y, x);
-}
-
-function normalizeAngle(angle) {
-  const twoPi = Math.PI * 2;
-  return ((angle % twoPi) + twoPi) % twoPi;
 }
 
 function shortestAngle(from, to) {

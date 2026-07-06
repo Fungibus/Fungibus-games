@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="Addictive Fishing, a blocky extraction fishing game about catching loot-fish and making it back to the dock."
+    >
+    <title>Addictive Fishing</title>
+    <link rel="stylesheet" href="/shared/styles.css">
+    <link rel="stylesheet" href="/games/addictive-fishing/addictive-fishing.css">
+    <script src="/games/addictive-fishing/addictive-fishing.js" defer></script>
+  </head>
+  <body>
+    <div class="fishing-app">
+      <header class="fishing-header">
+        <a class="home-link" href="/">fungibus-games</a>
+        <strong>Addictive Fishing</strong>
+        <div class="header-actions">
+          <button id="deployButton" type="button">Deploy</button>
+          <button id="resetSaveButton" class="secondary" type="button">Reset Save</button>
+        </div>
+      </header>
+
+      <section class="raid-hud" aria-label="Raid status">
+        <div>
+          <span>Cash</span>
+          <strong id="cashValue">$0</strong>
+        </div>
+        <div>
+          <span>Timer</span>
+          <strong id="timerValue">04:00</strong>
+        </div>
+        <div>
+          <span>Pack</span>
+          <strong id="packValue">0 / 8 kg</strong>
+        </div>
+        <div>
+          <span>Noise</span>
+          <strong id="noiseValue">0%</strong>
+        </div>
+        <div>
+          <span>Resolve</span>
+          <strong id="resolveValue">100%</strong>
+        </div>
+      </section>
+
+      <main class="addictive-fishing-shell" aria-label="Addictive Fishing extraction raid">
+        <section class="game-stage" aria-label="Blocky fishing raid">
+          <canvas id="gameCanvas"></canvas>
+          <div id="messagePanel" class="message-panel" aria-live="polite"></div>
+        </section>
+
+        <aside class="raid-panel" aria-label="Inventory and upgrades">
+          <section class="panel-block">
+            <div class="panel-heading">
+              <p class="eyebrow">Raid Pack</p>
+              <strong id="inventoryCount">0 items</strong>
+            </div>
+            <div id="inventoryGrid" class="inventory-grid" aria-label="Current catch inventory"></div>
+          </section>
+
+          <section class="panel-block">
+            <div class="panel-heading">
+              <p class="eyebrow">Permanent Kit</p>
+              <strong id="kitTier">Tier 1</strong>
+            </div>
+            <div id="upgradeList" class="upgrade-list"></div>
+          </section>
+
+          <section class="panel-block compact">
+            <p class="eyebrow">Controls</p>
+            <p class="control-line">WASD move · Shift sprint · Mouse aim · Hold click or Space to cast/reel · E extract</p>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <div id="overlay" class="overlay">
+      <section class="overlay-panel" aria-labelledby="overlayTitle">
+        <p id="overlayKicker" class="eyebrow">Stash</p>
+        <h1 id="overlayTitle">Block Dock Ready</h1>
+        <p id="overlayText">
+          Deploy, catch square-built loot-fish, and extract before the pond turns hostile.
+        </p>
+        <div id="summaryStats" class="summary-stats"></div>
+        <div class="overlay-actions">
+          <button id="overlayPrimaryButton" type="button">Deploy</button>
+          <button id="overlayCloseButton" class="secondary" type="button">Shop Only</button>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>

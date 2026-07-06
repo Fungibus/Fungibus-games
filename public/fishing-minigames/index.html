@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="Fishing Minigames, a workbench for testing small fishing minigame prototypes."
+    >
+    <title>Fishing Minigames</title>
+    <link rel="stylesheet" href="/shared/styles.css">
+    <link rel="stylesheet" href="/games/fishing-minigames/fishing-minigames.css">
+    <script src="/games/fishing-minigames/fishing-minigames.js" defer></script>
+  </head>
+  <body>
+    <header class="fishing-minigames-header">
+      <a class="home-link" href="/">fungibus-games</a>
+      <strong>Fishing Minigames</strong>
+      <div class="header-actions" aria-label="Workbench actions">
+        <button id="startButton" type="button">Start</button>
+        <button id="resetButton" class="secondary" type="button">Reset</button>
+      </div>
+    </header>
+
+    <main class="fishing-minigames-shell" aria-label="Fishing Minigames workbench">
+      <section class="workbench-tabs" aria-label="Minigame selector">
+        <button class="tab-button is-active" type="button" data-game="bar" aria-pressed="true">Bar Keeper</button>
+        <button class="tab-button" type="button" data-game="ring" aria-pressed="false">Timing Ring</button>
+        <button class="tab-button" type="button" data-game="cast" aria-pressed="false">Shadow Cast</button>
+        <button class="tab-button" type="button" data-game="tug" aria-pressed="false">Square Tug</button>
+        <button class="tab-button" type="button" data-game="drifter" aria-pressed="false">Current Drifter</button>
+        <button class="tab-button" type="button" data-game="sorter" aria-pressed="false">Net Sorter</button>
+        <button class="tab-button" type="button" data-game="depth" aria-pressed="false">Depth Dial</button>
+      </section>
+
+      <section class="workbench-layout">
+        <section class="fishing-minigames-stage" aria-label="Playable minigame">
+          <canvas id="gameCanvas"></canvas>
+          <div id="resultPanel" class="result-panel" aria-live="polite">
+            <p id="resultKicker">Ready</p>
+            <strong id="resultTitle">Bar Keeper</strong>
+            <span id="resultText">Press Start to begin.</span>
+          </div>
+        </section>
+
+        <aside class="test-panel" aria-label="Minigame test controls">
+          <section class="panel-block">
+            <div class="panel-heading">
+              <p class="eyebrow">Status</p>
+              <strong id="activeGameTitle">Bar Keeper</strong>
+            </div>
+            <span id="statusPill" class="status-pill">Ready</span>
+          </section>
+
+          <section class="panel-block">
+            <label for="difficultySlider">
+              <span>Difficulty</span>
+            </label>
+            <div class="difficulty-row">
+              <input id="difficultySlider" type="range" min="1" max="5" value="3">
+              <strong id="difficultyValue">3</strong>
+            </div>
+          </section>
+
+          <section class="panel-block">
+            <p class="eyebrow">Live Stats</p>
+            <dl id="statsList" class="stats-list"></dl>
+          </section>
+
+          <section class="panel-block">
+            <p class="eyebrow">Pull Direction</p>
+            <div class="direction-pad" aria-label="Pull direction controls">
+              <button class="dir-button up" type="button" data-dir="up" aria-label="Pull up">Up</button>
+              <button class="dir-button left" type="button" data-dir="left" aria-label="Pull left">Left</button>
+              <button class="dir-button right" type="button" data-dir="right" aria-label="Pull right">Right</button>
+              <button class="dir-button down" type="button" data-dir="down" aria-label="Pull down">Down</button>
+            </div>
+          </section>
+
+          <section class="panel-block">
+            <button id="holdButton" class="action-button" type="button">Action</button>
+          </section>
+        </aside>
+      </section>
+    </main>
+  </body>
+</html>

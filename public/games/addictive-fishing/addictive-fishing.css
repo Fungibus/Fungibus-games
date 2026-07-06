@@ -1,0 +1,502 @@
+:root {
+  --block-bg: #17251c;
+  --block-bg-dark: #0c1511;
+  --block-panel: #263424;
+  --block-panel-strong: #34452c;
+  --block-line: #6d7f52;
+  --block-line-bright: #d7ce74;
+  --block-text: #f2edc8;
+  --block-muted: #b4bd8b;
+  --block-water: #1d6670;
+  --block-water-dark: #164b57;
+  --block-green: #4f8b45;
+  --block-red: #b94b3b;
+  --block-yellow: #d6b84b;
+  --block-blue: #59a6bd;
+  --block-black: #07100d;
+  --block-size: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  overflow: hidden;
+  background: var(--block-bg-dark);
+  color: var(--block-text);
+  font-family: "Courier New", Courier, ui-monospace, SFMono-Regular, Menlo, monospace;
+  image-rendering: pixelated;
+  text-rendering: geometricPrecision;
+}
+
+button {
+  min-height: 2.4rem;
+  border: 3px solid var(--block-black);
+  border-radius: 0;
+  background: var(--block-line-bright);
+  box-shadow: 4px 4px 0 var(--block-black);
+  color: var(--block-black);
+  padding: 0.52rem 0.8rem;
+  font-size: 0.82rem;
+  font-weight: 950;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+button.secondary {
+  background: var(--block-panel-strong);
+  color: var(--block-text);
+}
+
+button:not(:disabled):hover {
+  border-color: var(--block-black);
+  background: #fff09a;
+  box-shadow: 4px 4px 0 var(--block-black);
+}
+
+button.secondary:not(:disabled):hover {
+  background: #42573a;
+  color: var(--block-text);
+}
+
+button:not(:disabled):active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--block-black);
+}
+
+button:disabled {
+  opacity: 0.5;
+}
+
+.fishing-app {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 0.55rem;
+  width: min(100%, 1360px);
+  height: 100dvh;
+  margin: 0 auto;
+  padding: 0.55rem;
+}
+
+.fishing-header {
+  display: grid;
+  grid-template-columns: minmax(7rem, 1fr) auto minmax(12rem, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+  border: 4px solid var(--block-black);
+  background: #2e3d29;
+  box-shadow: 5px 5px 0 var(--block-black);
+  padding: 0.45rem 0.65rem;
+}
+
+.home-link {
+  color: var(--block-text);
+  font-size: 0.8rem;
+  font-weight: 950;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.home-link:hover {
+  color: var(--block-line-bright);
+}
+
+.fishing-header strong {
+  color: var(--block-line-bright);
+  font-size: clamp(1rem, 2.5vw, 1.65rem);
+  line-height: 1;
+  text-align: center;
+  text-shadow: 3px 3px 0 var(--block-black);
+  text-transform: uppercase;
+}
+
+.header-actions {
+  display: flex;
+  justify-content: end;
+  gap: 0.55rem;
+}
+
+.raid-hud {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.raid-hud div,
+.panel-block,
+.overlay-panel {
+  border: 4px solid var(--block-black);
+  background: var(--block-panel);
+  box-shadow: 4px 4px 0 var(--block-black);
+}
+
+.raid-hud div {
+  min-width: 0;
+  padding: 0.46rem 0.58rem;
+}
+
+.raid-hud span,
+.eyebrow {
+  display: block;
+  margin: 0 0 0.2rem;
+  color: var(--block-muted);
+  font-size: 0.62rem;
+  font-weight: 950;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.raid-hud strong {
+  display: block;
+  overflow: hidden;
+  color: var(--block-text);
+  font-size: clamp(0.92rem, 1.8vw, 1.28rem);
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.addictive-fishing-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 23rem);
+  gap: 0.55rem;
+  min-height: 0;
+}
+
+.game-stage {
+  position: relative;
+  min-height: 0;
+  border: 5px solid var(--block-black);
+  background: var(--block-water-dark);
+  box-shadow: 6px 6px 0 var(--block-black);
+  overflow: hidden;
+}
+
+#gameCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  cursor: crosshair;
+  image-rendering: pixelated;
+  touch-action: none;
+}
+
+.message-panel {
+  position: absolute;
+  left: 50%;
+  bottom: 0.8rem;
+  width: min(94%, 42rem);
+  border: 3px solid var(--block-black);
+  background: #19251e;
+  box-shadow: 4px 4px 0 var(--block-black);
+  color: var(--block-text);
+  font-size: clamp(0.78rem, 1.4vw, 0.95rem);
+  font-weight: 900;
+  opacity: 0;
+  padding: 0.55rem 0.7rem;
+  pointer-events: none;
+  text-align: center;
+  text-transform: uppercase;
+  transform: translate(-50%, 8px);
+  transition:
+    opacity 120ms steps(2, end),
+    transform 120ms steps(2, end);
+}
+
+.message-panel.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.raid-panel {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  gap: 0.55rem;
+  min-height: 0;
+}
+
+.panel-block {
+  min-width: 0;
+  min-height: 0;
+  padding: 0.7rem;
+}
+
+.panel-block.compact {
+  align-self: end;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.55rem;
+  border-bottom: 3px solid var(--block-black);
+  padding-bottom: 0.45rem;
+}
+
+.panel-heading strong {
+  color: var(--block-line-bright);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.38rem;
+  max-height: min(33vh, 17rem);
+  overflow: auto;
+  padding-right: 0.15rem;
+}
+
+.inventory-slot {
+  position: relative;
+  min-height: 4.2rem;
+  border: 3px solid var(--block-black);
+  background: #1a281f;
+  color: var(--block-text);
+  padding: 0.34rem;
+}
+
+.inventory-slot.empty {
+  background: #202e24;
+}
+
+.item-pixel {
+  display: block;
+  width: 1.2rem;
+  height: 0.8rem;
+  margin-bottom: 0.32rem;
+  background: var(--item-color, var(--block-blue));
+  box-shadow:
+    8px 0 0 var(--item-color, var(--block-blue)),
+    16px 0 0 var(--item-accent, var(--block-line-bright)),
+    8px 8px 0 var(--item-accent, var(--block-line-bright));
+}
+
+.item-name,
+.item-meta {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-name {
+  color: var(--block-text);
+  font-size: 0.72rem;
+  font-weight: 950;
+}
+
+.item-meta {
+  color: var(--block-muted);
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+
+.upgrade-list {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.upgrade-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+  border: 3px solid var(--block-black);
+  background: #1b2a21;
+  padding: 0.45rem;
+}
+
+.upgrade-row strong,
+.upgrade-row span {
+  display: block;
+}
+
+.upgrade-row strong {
+  color: var(--block-text);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.upgrade-row span {
+  color: var(--block-muted);
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
+.upgrade-row button {
+  min-width: 5.6rem;
+  min-height: 2.1rem;
+  padding: 0.38rem 0.5rem;
+  font-size: 0.68rem;
+}
+
+.control-line {
+  margin: 0;
+  color: var(--block-muted);
+  font-size: 0.74rem;
+  font-weight: 850;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  background: rgba(7, 16, 13, 0.78);
+  padding: 1rem;
+}
+
+.overlay[hidden] {
+  display: none;
+}
+
+.overlay-panel {
+  width: min(100%, 37rem);
+  background: #263424;
+  padding: clamp(1rem, 3vw, 1.35rem);
+}
+
+.overlay-panel h1 {
+  margin: 0 0 0.7rem;
+  color: var(--block-line-bright);
+  font-size: clamp(1.55rem, 5vw, 2.5rem);
+  line-height: 0.95;
+  text-shadow: 4px 4px 0 var(--block-black);
+  text-transform: uppercase;
+}
+
+.overlay-panel p {
+  margin: 0 0 1rem;
+  color: var(--block-text);
+  font-weight: 850;
+}
+
+.summary-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+}
+
+.summary-stats div {
+  border: 3px solid var(--block-black);
+  background: #1a281f;
+  padding: 0.5rem;
+}
+
+.summary-stats span,
+.summary-stats strong {
+  display: block;
+}
+
+.summary-stats span {
+  color: var(--block-muted);
+  font-size: 0.62rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.summary-stats strong {
+  overflow: hidden;
+  color: var(--block-text);
+  font-size: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.overlay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+@media (max-width: 920px) {
+  body {
+    overflow: auto;
+  }
+
+  .fishing-app {
+    height: auto;
+    min-height: 100dvh;
+  }
+
+  .fishing-header {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .header-actions {
+    justify-content: center;
+  }
+
+  .raid-hud {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .raid-hud div:first-child {
+    grid-column: span 2;
+  }
+
+  .addictive-fishing-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .game-stage {
+    height: min(68vh, 34rem);
+    min-height: 28rem;
+  }
+
+  .raid-panel {
+    grid-template-rows: auto;
+  }
+
+  .inventory-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-height: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .fishing-app {
+    padding: 0.35rem;
+  }
+
+  .header-actions,
+  .overlay-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .raid-hud {
+    grid-template-columns: 1fr;
+  }
+
+  .raid-hud div:first-child {
+    grid-column: auto;
+  }
+
+  .game-stage {
+    min-height: 24rem;
+  }
+
+  .inventory-grid,
+  .summary-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

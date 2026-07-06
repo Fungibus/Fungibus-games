@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="Light Wheel, a singleplayer incremental roguelike timing game about stopping a spinning light on the target."
+    >
+    <title>Light Wheel</title>
+    <link rel="stylesheet" href="/shared/styles.css">
+    <link rel="stylesheet" href="/games/light-wheel/light-wheel.css">
+    <script src="/games/light-wheel/light-wheel.js" defer></script>
+  </head>
+  <body>
+    <div class="wheel-app">
+      <header class="wheel-header">
+        <strong>Light Wheel</strong>
+        <button id="resetButton" class="reset-button" type="button">Reset</button>
+      </header>
+
+      <section class="wheel-hud" aria-label="Current run stats">
+        <div><span>Credits</span><strong id="creditsValue">0</strong></div>
+        <div><span>Streak</span><strong id="streakValue">0</strong></div>
+        <div><span>Stage</span><strong id="stageValue">1</strong></div>
+      </section>
+
+      <main class="wheel-game">
+        <section class="wheel-stage" aria-label="Light Wheel">
+          <div class="play-status">
+            <p id="resultLine" class="result-line" aria-live="polite">
+              Press when the hot light reaches the lit target.
+            </p>
+            <div class="wheel-brief" aria-label="Wheel payout details">
+              <div>
+                <span>Target</span>
+                <strong id="targetLabel">1 light</strong>
+              </div>
+              <div>
+                <span>Perfect</span>
+                <strong id="payoutLabel">0</strong>
+              </div>
+              <div>
+                <span>Relic</span>
+                <strong id="jackpotPercent">0%</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="wheel-area">
+            <svg
+              id="wheelSvg"
+              class="wheel-svg"
+              viewBox="0 0 100 100"
+              role="img"
+              aria-label="Spinning light wheel"
+            ></svg>
+            <div class="wheel-center">
+              <span>Jackpot</span>
+              <strong id="jackpotValue">0 / 100</strong>
+            </div>
+          </div>
+
+          <div class="jackpot-panel">
+            <div class="jackpot-meta">
+              <span>Jackpot charge</span>
+              <strong id="jackpotMeterLabel">0%</strong>
+            </div>
+            <div class="progress-track" aria-label="Jackpot progress">
+              <span id="jackpotProgress"></span>
+            </div>
+          </div>
+
+          <button
+            id="stopButton"
+            class="stop-button"
+            type="button"
+            aria-label="Stop the spinning light"
+          >
+            Stop
+          </button>
+        </section>
+
+        <aside class="wheel-rail" aria-label="Upgrades and relics">
+          <div class="rail-heading">
+            <span>Credits ready</span>
+            <strong id="shopCredits">0</strong>
+          </div>
+          <div class="tab-bar" role="tablist">
+            <button class="tab is-active" type="button" data-tab="upgrades" role="tab">Upgrades</button>
+            <button class="tab" type="button" data-tab="relics" role="tab">Relics</button>
+          </div>
+
+          <section class="tab-panel is-active" data-panel="upgrades" role="tabpanel">
+            <p class="eyebrow">Run upgrades · spend credits</p>
+            <div id="upgradeList" class="upgrade-list"></div>
+          </section>
+
+          <section class="tab-panel" data-panel="relics" role="tabpanel">
+            <p class="eyebrow">Run relics</p>
+            <div id="relicList" class="relic-list">
+              <p class="empty-line">Fill the jackpot meter to draft your first relic.</p>
+            </div>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <div id="overlay" class="overlay" hidden>
+      <section id="draftPanel" class="overlay-card draft-panel" hidden>
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Relic draft</p>
+            <h2>Choose one</h2>
+          </div>
+          <span id="draftCount" class="overlay-tag">3 choices</span>
+        </div>
+        <div id="draftChoices" class="draft-choices"></div>
+      </section>
+
+      <section id="runCompletePanel" class="overlay-card run-complete-panel" hidden>
+        <p class="eyebrow">Run complete</p>
+        <h2>Wheel cleared</h2>
+        <p id="runCompleteText">A stronger wheel is ready.</p>
+        <button id="runContinueButton" class="stop-button" type="button">Next run</button>
+      </section>
+    </div>
+  </body>
+</html>

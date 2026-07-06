@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="Fishing at the End of the World, a survival fishing game about saving the last lighthouse before the sea goes dark."
+    >
+    <title>Fishing at the End of the World</title>
+    <link rel="stylesheet" href="/shared/styles.css">
+    <link rel="stylesheet" href="/games/fishing-at-the-end-of-the-world/fishing-at-the-end-of-the-world.css">
+    <script src="/games/fishing-at-the-end-of-the-world/fishing-at-the-end-of-the-world.js" defer></script>
+  </head>
+  <body>
+    <div class="end-fishing-app">
+      <header class="end-fishing-header">
+        <a class="home-link" href="/">fungibus-games</a>
+        <strong>Fishing at the End of the World</strong>
+        <div class="header-actions">
+          <button id="soundButton" class="ghost-button" type="button" aria-pressed="false">Sound</button>
+          <button id="pauseButton" class="ghost-button" type="button">Pause</button>
+          <button id="newRunButton" class="ghost-button danger" type="button">New Run</button>
+        </div>
+      </header>
+
+      <main class="end-fishing-shell" aria-label="Fishing at the End of the World">
+        <section class="world-panel" aria-label="The last shoreline">
+          <canvas id="worldCanvas" aria-label="Playable sea and fishing pier"></canvas>
+
+          <div class="screen-vignette" aria-hidden="true"></div>
+
+          <section id="statusToast" class="status-toast" aria-live="polite"></section>
+
+          <div class="charge-readout" aria-label="Cast charge">
+            <span>Cast</span>
+            <div class="meter-track"><b id="chargeMeter"></b></div>
+          </div>
+
+          <div class="tension-readout" aria-label="Line tension">
+            <span>Line</span>
+            <div class="meter-track tension-track"><b id="tensionMeter"></b></div>
+          </div>
+
+          <div class="beam-readout" aria-label="Lighthouse beam">
+            <div>
+              <span>Beam</span>
+              <strong id="beamStatus">Charging</strong>
+            </div>
+            <div class="meter-track beam-track"><b id="beamMeter"></b></div>
+            <button id="beamButton" class="beam-button" type="button">Focus</button>
+          </div>
+
+          <section id="catchCard" class="catch-card" aria-live="polite" hidden>
+            <div class="catch-card-topline">
+              <span id="catchGrade">Calm Haul</span>
+              <strong id="catchName">Ash Minnow</strong>
+            </div>
+            <p id="catchStats"></p>
+            <p id="catchLore"></p>
+          </section>
+
+          <div id="titleOverlay" class="story-overlay">
+            <section class="story-card" aria-labelledby="titleHeading">
+              <p class="eyebrow">Last tide</p>
+              <h1 id="titleHeading">Fishing at the End of the World</h1>
+              <p>
+                The sun stopped returning. The lighthouse still remembers how to burn, but it
+                needs four living echoes from the black water before the final storm arrives.
+              </p>
+              <div class="story-actions">
+                <button id="startButton" type="button">Begin Watch</button>
+                <button id="continueButton" class="secondary" type="button">Continue</button>
+              </div>
+            </section>
+          </div>
+
+          <div id="endOverlay" class="story-overlay" hidden>
+            <section class="story-card" aria-labelledby="endHeading">
+              <p id="endKicker" class="eyebrow">Run ended</p>
+              <h2 id="endHeading">The sea goes quiet</h2>
+              <p id="endText"></p>
+              <div id="endStats" class="end-stats"></div>
+              <div class="story-actions">
+                <button id="restartButton" type="button">Try Again</button>
+              </div>
+            </section>
+          </div>
+
+          <div id="relicOverlay" class="story-overlay" hidden>
+            <section class="story-card relic-draft" aria-labelledby="relicHeading">
+              <p class="eyebrow">Recovered Relic</p>
+              <h2 id="relicHeading">Choose what the echo leaves behind</h2>
+              <p id="relicText">
+                The lighthouse lens opens a small memory. Take one piece of it forward.
+              </p>
+              <div id="relicChoices" class="relic-choices"></div>
+            </section>
+          </div>
+        </section>
+
+        <aside class="command-panel" aria-label="Run command panel">
+          <section class="hud-grid" aria-label="Run status">
+            <div>
+              <span>Storm</span>
+              <strong id="stormValue">7 days</strong>
+            </div>
+            <div>
+              <span>Light</span>
+              <strong id="lightValue">0 / 4</strong>
+            </div>
+            <div>
+              <span>Salvage</span>
+              <strong id="salvageValue">0</strong>
+            </div>
+            <div>
+              <span>Hope</span>
+              <strong id="hopeValue">100</strong>
+            </div>
+          </section>
+
+          <section class="panel-block objective-block">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Lighthouse</p>
+                <h2>Living echoes</h2>
+              </div>
+              <span id="phaseTag" class="tag">Dusk</span>
+            </div>
+            <div id="echoList" class="echo-list"></div>
+            <p id="storyLine" class="story-line">
+              Cast past the pier lights. Ordinary fish bring salvage; omen fish restore the beam.
+            </p>
+          </section>
+
+          <section class="panel-block writ-block">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Harbor Writ</p>
+                <h2 id="writTitle">No writ sealed</h2>
+              </div>
+              <span id="writReward" class="tag">0</span>
+            </div>
+            <p id="writText" class="story-line"></p>
+            <div class="writ-progress" aria-label="Writ progress">
+              <span id="writProgressText">0 / 0</span>
+              <div class="meter-track"><b id="writProgressMeter"></b></div>
+            </div>
+          </section>
+
+          <section class="panel-block sea-block">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Sea State</p>
+                <h2 id="seaStateName">Quiet Water</h2>
+              </div>
+              <span id="seaStateTag" class="tag">Stable</span>
+            </div>
+            <p id="seaStateText" class="story-line"></p>
+            <div id="seaStateEffects" class="effect-list"></div>
+          </section>
+
+          <section class="panel-block tackle-block">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Tackle Box</p>
+                <h2 id="baitName">Quiet Fly</h2>
+              </div>
+              <span id="baitTag" class="tag">Safe</span>
+            </div>
+            <p id="baitText" class="story-line"></p>
+            <div id="baitOptions" class="bait-options" role="group" aria-label="Choose bait"></div>
+          </section>
+
+          <section class="panel-block">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Workshop</p>
+                <h2>Gear</h2>
+              </div>
+              <span id="depthTag" class="tag">Surface</span>
+            </div>
+            <div id="upgradeList" class="upgrade-list"></div>
+          </section>
+
+          <section class="panel-block">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Captain's Log</p>
+                <h2>Recent omens</h2>
+              </div>
+            </div>
+            <div id="journalList" class="journal-list"></div>
+          </section>
+
+          <section class="panel-block">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Logbook</p>
+                <h2>Catches</h2>
+              </div>
+              <span id="catchCount" class="tag">0</span>
+            </div>
+            <div id="logbook" class="logbook"></div>
+          </section>
+
+          <section class="panel-block controls-block">
+            <p class="eyebrow">Controls</p>
+            <p>Move along the pier with A/D or arrows. Hold mouse, touch, or Space to charge a cast. After splashdown, hold again to reel. During a fight, pulse reeling to keep the line below red.</p>
+          </section>
+        </aside>
+      </main>
+    </div>
+  </body>
+</html>
