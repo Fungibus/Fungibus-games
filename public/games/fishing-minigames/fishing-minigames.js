@@ -22,6 +22,7 @@ let height = 0;
 let difficulty = Number(els.difficultySlider.value);
 let activeId = "bar";
 let inputDown = false;
+let inputSource = null;
 let lastTime = performance.now();
 const pointer = { x: 0, y: 0, active: false };
 const directionsDown = new Set();
@@ -31,6 +32,7 @@ const games = {
   ring: createTimingRing(difficulty),
   cast: createShadowCast(difficulty),
   tug: createSquareTug(difficulty),
+  rod: createRodTug(difficulty),
   drifter: createCurrentDrifter(difficulty),
   sorter: createNetSorter(difficulty),
   depth: createDepthDial(difficulty),
@@ -72,7 +74,7 @@ els.difficultySlider.addEventListener("input", () => {
 els.holdButton.addEventListener("pointerdown", (event) => {
   event.preventDefault();
   els.holdButton.setPointerCapture(event.pointerId);
-  pressAction();
+  pressAction("button");
 });
 els.holdButton.addEventListener("pointerup", releaseAction);
 els.holdButton.addEventListener("pointercancel", releaseAction);
@@ -81,7 +83,7 @@ canvas.addEventListener("pointerdown", (event) => {
   event.preventDefault();
   setPointer(event);
   canvas.setPointerCapture(event.pointerId);
-  pressAction();
+  pressAction("canvas");
 });
 canvas.addEventListener("pointermove", setPointer);
 canvas.addEventListener("pointerup", (event) => {
@@ -97,7 +99,7 @@ canvas.addEventListener("contextmenu", (event) => event.preventDefault());
 window.addEventListener("keydown", (event) => {
   if (event.code === "Space") {
     event.preventDefault();
-    if (!event.repeat) pressAction();
+    if (!event.repeat) pressAction("keyboard");
   }
 
   if (event.code === "KeyR") {
@@ -134,6 +136,7 @@ requestAnimationFrame(tick);
 function selectGame(id) {
   if (!games[id] || id === activeId) return;
   inputDown = false;
+  inputSource = null;
   directionsDown.clear();
   els.dirButtons.forEach((button) => button.classList.remove("is-pressed"));
   activeId = id;
@@ -150,19 +153,22 @@ function selectGame(id) {
   updateUi();
 }
 
-function pressAction() {
+function pressAction(source = "button") {
   inputDown = true;
+  inputSource = source;
   els.holdButton.classList.add("is-pressed");
   if (activeGame.getStatus().state === "ready") activeGame.start();
-  activeGame.handlePress();
+  activeGame.handlePress(source);
   updateUi();
 }
 
 function releaseAction() {
   if (!inputDown) return;
+  const source = inputSource;
   inputDown = false;
+  inputSource = null;
   els.holdButton.classList.remove("is-pressed");
-  activeGame.handleRelease();
+  activeGame.handleRelease(source);
   updateUi();
 }
 
@@ -935,7 +941,7 @@ function createSquareTug(level) {
     update,
     draw,
     handlePress,
-    handleRelease() {},
+    handleRelease,
     setDifficulty(nextLevel) {
       game.level = nextLevel;
     },
@@ -1257,6 +1263,503 @@ function createSquareTug(level) {
       edgeTension: 0.86 + d * 0.16,
       pullRelief: 0.58 + d * 0.035,
       wrongPullTension: 0.26 + d * 0.08,
+      passiveRelief: 0.08,
+      calmReelTension: 0.012 + d * 0.003,
+      reelProgress: 0.022 - d * 0.0013,
+      reelDuringThrashTension: 0.11 + d * 0.025,
+      thrashTension: 0.05 + d * 0.035,
+      thrashGapMin: 2.05 - d * 0.12,
+      thrashGapMax: 3.55 - d * 0.16,
+      thrashMin: 0.52 + d * 0.035,
+      thrashMax: 0.9 + d * 0.045,
+    };
+  }
+}
+
+function createRodTug(level) {
+  const game = {
+    id: "rod",
+    title: "Rod Tug",
+    actionLabel: "Tap to Reel",
+    level,
+    state: {},
+    reset,
+    start,
+    update,
+    draw,
+    handlePress,
+    handleRelease,
+    setDifficulty(nextLevel) {
+      game.level = nextLevel;
+    },
+    getStats,
+    getStatus,
+  };
+
+  reset();
+  return game;
+
+  function reset() {
+    game.state = {
+      mode: "ready",
+      tension: 0.12,
+      progress: 0,
+      timeLeft: 70,
+      result: "Move the rod away from center opposite edge pressure. Tap reel only when calm.",
+      messageTimer: 0,
+      reelFlash: 0,
+      reelTaps: 0,
+      brace: 0,
+      wrongBrace: 0,
+      rodLoad: 0,
+      pulling: false,
+      fish: {
+        x: 0.5,
+        y: 0.5,
+        vx: 0,
+        vy: 0,
+        targetX: 0.5,
+        targetY: 0.5,
+        targetTimer: 0,
+      },
+      thrashing: false,
+      thrashTimer: 2.6,
+      thrashLeft: 0,
+      pulse: 0,
+    };
+  }
+
+  function start() {
+    let state = game.state;
+    if (state.mode === "running") return;
+    if (state.mode === "won" || state.mode === "lost") {
+      reset();
+      state = game.state;
+    }
+    state.mode = "running";
+  }
+
+  function update(dt, pressed) {
+    const state = game.state;
+    if (state.mode !== "running") return;
+
+    const settings = rodTugSettings();
+    const square = getTugSquare(width, height);
+    state.timeLeft -= dt;
+    state.pulse = Math.max(0, state.pulse - dt * 2.8);
+    state.reelFlash = Math.max(0, state.reelFlash - dt * 5);
+    state.messageTimer = Math.max(0, state.messageTimer - dt);
+
+    const edge = getEdgePressure(state.fish);
+    const pulling = pressed && inputSource === "canvas" && pointer.active;
+    const pull = pulling ? getRodPullVector(square) : { x: 0, y: 0 };
+    const oppositePull =
+      edge.pressure > settings.edgeThreshold ? Math.max(0, dot(pull, edge.reliefX, edge.reliefY)) : 0;
+    const wrongPull =
+      edge.pressure > settings.edgeThreshold ? Math.max(0, dot(pull, -edge.reliefX, -edge.reliefY)) : 0;
+    state.pulling = pulling;
+    state.brace = oppositePull;
+    state.wrongBrace = wrongPull;
+    state.rodLoad = lerp(
+      state.rodLoad,
+      pulling ? clamp(edge.pressure * 0.42 + oppositePull * 0.52 + wrongPull * 0.36, 0, 1) : 0,
+      clamp(dt * 12, 0, 1)
+    );
+
+    updateRodTugFish(dt, settings, oppositePull);
+    updateRodThrash(dt, settings);
+
+    const edgeRise = Math.max(0, edge.pressure - settings.edgeThreshold) * settings.edgeTension;
+    const relief = oppositePull * settings.pullRelief;
+    const wrong = wrongPull * settings.wrongPullTension;
+
+    let tensionDelta = edgeRise + wrong - relief - settings.passiveRelief;
+    if (state.thrashing) {
+      tensionDelta += settings.thrashTension;
+    }
+
+    state.tension = clamp(state.tension + tensionDelta * dt, 0, 1);
+
+    if (state.progress >= 1) {
+      state.mode = "won";
+      state.result = "Fish landed.";
+    } else if (state.tension >= 1) {
+      state.mode = "lost";
+      state.result = "Line tension maxed out.";
+    } else if (state.timeLeft <= 0) {
+      state.mode = "lost";
+      state.result = "Timer expired.";
+    } else if (state.messageTimer <= 0) {
+      if (!pointer.active) {
+        state.result = "Move the cursor over the water to control the rod.";
+      } else if (state.thrashing) {
+        state.result = pulling ? "Thrashing. Keep pressure opposite the fish." : "Click and hold the rod to brace the thrash.";
+      } else if (!pulling && edge.pressure > settings.edgeWarnThreshold) {
+        state.result = `Click and drag rod ${edge.direction} to load the line.`;
+      } else if (wrongPull > 0.35) {
+        state.result = "Wrong pull. The fish is loading the line.";
+      } else if (edge.pressure > settings.edgeWarnThreshold && oppositePull < 0.35) {
+        state.result = pulling ? `Pull farther ${edge.direction} to slow the fish.` : `Click and drag rod ${edge.direction}.`;
+      } else if (oppositePull > 0.45) {
+        state.result = "Good brace. Fish is slowing down.";
+      } else {
+        state.result = "Tap reel while calm. Click-drag only when the fish reaches an edge.";
+      }
+    }
+  }
+
+  function draw(context, W, H) {
+    drawBackdrop(context, W, H, "Rod Tug");
+    const state = game.state;
+    const settings = rodTugSettings();
+    const square = getTugSquare(W, H);
+    const fishX = square.x + state.fish.x * square.size;
+    const fishY = square.y + state.fish.y * square.size;
+    const edge = getEdgePressure(state.fish);
+    const pull = state.pulling ? getRodPullVector(square) : { x: 0, y: 0 };
+    const rodBase = getRodBase(square, W, H);
+    const rod = getRodPoint(rodBase, W, H, state.rodLoad);
+    const pullStrength = Math.hypot(pull.x, pull.y);
+    const gripTop = { x: rodBase.x, y: rodBase.y - 48 };
+    const rodControl = { x: rodBase.x + 52 - state.rodLoad * 12, y: rodBase.y - 88 + state.rodLoad * 16 };
+    const reel = { x: rodBase.x - 18, y: rodBase.y - 34 };
+    const feedbackColor = state.wrongBrace > 0.3 ? "#ff876f" : state.brace > 0.3 ? "#7fd4ff" : "rgba(245, 251, 248, 0.58)";
+
+    drawProgressBar(context, square.x, square.y - 42, square.size, 17, state.tension, state.tension > 0.76 ? "#ff876f" : "#ffd36b");
+    drawPanel(context, square.x - 12, square.y - 12, square.size + 24, square.size + 24, 16);
+
+    context.fillStyle = state.thrashing ? "rgba(255, 135, 111, 0.17)" : "rgba(127, 212, 255, 0.14)";
+    context.fillRect(square.x, square.y, square.size, square.size);
+    context.strokeStyle = edge.pressure > settings.edgeWarnThreshold ? "#ff876f" : "rgba(245, 251, 248, 0.58)";
+    context.lineWidth = edge.pressure > settings.edgeWarnThreshold ? 5 : 3;
+    context.strokeRect(square.x, square.y, square.size, square.size);
+
+    context.strokeStyle = "rgba(245, 251, 248, 0.12)";
+    context.lineWidth = 1;
+    for (let i = 1; i < 4; i += 1) {
+      const pos = square.x + (square.size * i) / 4;
+      context.beginPath();
+      context.moveTo(pos, square.y);
+      context.lineTo(pos, square.y + square.size);
+      context.moveTo(square.x, square.y + (square.size * i) / 4);
+      context.lineTo(square.x + square.size, square.y + (square.size * i) / 4);
+      context.stroke();
+    }
+
+    context.strokeStyle = feedbackColor;
+    context.lineWidth = state.pulling ? 3 + state.rodLoad * 2 : 2;
+    context.beginPath();
+    context.moveTo(rod.x, rod.y);
+    context.quadraticCurveTo((rod.x + fishX) / 2, Math.min(rod.y, fishY) - 32 * state.tension, fishX, fishY);
+    context.stroke();
+
+    context.lineCap = "round";
+    context.strokeStyle = "rgba(5, 10, 12, 0.45)";
+    context.lineWidth = 12;
+    context.beginPath();
+    context.moveTo(gripTop.x, gripTop.y);
+    context.quadraticCurveTo(rodControl.x, rodControl.y, rod.x, rod.y);
+    context.stroke();
+
+    context.strokeStyle = state.pulling ? "#26313a" : "#38424a";
+    context.lineWidth = 6 + state.rodLoad * 2;
+    context.beginPath();
+    context.moveTo(gripTop.x, gripTop.y);
+    context.quadraticCurveTo(rodControl.x, rodControl.y, rod.x, rod.y);
+    context.stroke();
+
+    context.strokeStyle = state.brace > 0.25 ? "#7fd4ff" : "#e8e2d0";
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(gripTop.x + 2, gripTop.y - 1);
+    context.quadraticCurveTo(rodControl.x + 3, rodControl.y, rod.x + 1, rod.y);
+    context.stroke();
+
+    context.strokeStyle = "#2b1d14";
+    context.lineWidth = 14;
+    context.beginPath();
+    context.moveTo(rodBase.x, rodBase.y);
+    context.lineTo(gripTop.x, gripTop.y);
+    context.stroke();
+
+    context.strokeStyle = "#8d5524";
+    context.lineWidth = 9;
+    context.beginPath();
+    context.moveTo(rodBase.x, rodBase.y - 4);
+    context.lineTo(gripTop.x, gripTop.y + 4);
+    context.stroke();
+
+    context.strokeStyle = state.pulling ? feedbackColor : "#d7a64a";
+    context.lineWidth = 3;
+    for (let i = 0; i < 4; i += 1) {
+      const y = rodBase.y - 10 - i * 9;
+      context.beginPath();
+      context.moveTo(rodBase.x - 7, y);
+      context.lineTo(rodBase.x + 7, y);
+      context.stroke();
+    }
+
+    context.strokeStyle = "#d7a64a";
+    context.lineWidth = 4;
+    context.beginPath();
+    context.arc(rod.x, rod.y, 6, 0, Math.PI * 2);
+    context.stroke();
+    context.lineCap = "butt";
+
+    context.fillStyle = "#2b1d14";
+    context.beginPath();
+    context.arc(rodBase.x, rodBase.y, 8, 0, Math.PI * 2);
+    context.fill();
+    context.strokeStyle = "#d7a64a";
+    context.lineWidth = 2;
+    context.stroke();
+
+    context.fillStyle = "#1e2529";
+    context.beginPath();
+    context.arc(reel.x, reel.y, 13, 0, Math.PI * 2);
+    context.fill();
+    context.strokeStyle = "#d7a64a";
+    context.lineWidth = 4;
+    context.stroke();
+
+    context.strokeStyle = "#e8e2d0";
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(reel.x + 9, reel.y + 7);
+    context.lineTo(reel.x + 22, reel.y + 16);
+    context.stroke();
+
+    context.fillStyle = "#e8e2d0";
+    context.beginPath();
+    context.arc(reel.x, reel.y, 4, 0, Math.PI * 2);
+    context.fill();
+    context.beginPath();
+    context.arc(reel.x + 24, reel.y + 17, 4, 0, Math.PI * 2);
+    context.fill();
+
+    context.fillStyle = pullStrength > 0.2 ? "#7fd4ff" : "rgba(127, 212, 255, 0.42)";
+    context.beginPath();
+    context.arc(rod.x, rod.y, 5 + pullStrength * 3, 0, Math.PI * 2);
+    context.fill();
+
+    if (state.pulling && pullStrength > 0.05) {
+      context.strokeStyle = feedbackColor;
+      context.lineWidth = 5;
+      context.beginPath();
+      context.moveTo(fishX, fishY);
+      context.lineTo(fishX + pull.x * 78, fishY + pull.y * 78);
+      context.stroke();
+      context.fillStyle = feedbackColor;
+      context.beginPath();
+      context.arc(fishX + pull.x * 78, fishY + pull.y * 78, 8, 0, Math.PI * 2);
+      context.fill();
+    }
+
+    if (state.pulling && (state.brace > 0.05 || state.wrongBrace > 0.05)) {
+      const feedback = Math.max(state.brace, state.wrongBrace);
+      context.strokeStyle = state.brace >= state.wrongBrace ? "rgba(127, 212, 255, 0.72)" : "rgba(255, 135, 111, 0.72)";
+      context.lineWidth = 2 + feedback * 3;
+      context.beginPath();
+      context.arc(fishX, fishY, 34 + feedback * 18 + Math.sin(performance.now() / 80) * 3, 0, Math.PI * 2);
+      context.stroke();
+    }
+
+    context.fillStyle = state.thrashing ? "rgba(255, 135, 111, 0.88)" : "rgba(16, 32, 35, 0.78)";
+    context.beginPath();
+    context.ellipse(
+      fishX + Math.sin(performance.now() / 45) * state.pulse * 7,
+      fishY,
+      28 + state.pulse * 5,
+      14 + state.pulse * 3,
+      state.fish.vx * 0.35,
+      0,
+      Math.PI * 2
+    );
+    context.fill();
+
+    if (state.thrashing) {
+      context.strokeStyle = "rgba(255, 255, 255, 0.72)";
+      context.lineWidth = 2;
+      context.beginPath();
+      context.arc(fishX, fishY, 38 + Math.sin(performance.now() / 70) * 5, 0, Math.PI * 2);
+      context.stroke();
+    }
+
+    drawProgressBar(
+      context,
+      square.x,
+      square.y + square.size + 28,
+      square.size,
+      17 + state.reelFlash * 5,
+      state.progress,
+      state.reelFlash > 0 ? "#ffd36b" : "#91d576"
+    );
+    drawStageText(context, W, H, state.mode === "running" ? "Click-hold the rod, then drag opposite edge pressure. Use Space or Action to reel." : getStatus().text);
+  }
+
+  function getStats() {
+    const state = game.state;
+    const square = getTugSquare(width, height);
+    const edge = getEdgePressure(state.fish);
+    const pull = state.pulling ? getRodPullVector(square) : { x: 0, y: 0 };
+    return [
+      ["Progress", formatPercent(state.progress)],
+      ["Tension", formatPercent(state.tension)],
+      ["Fish State", state.thrashing ? "Thrash" : "Calm"],
+      ["Edge Pull", edge.direction],
+      ["Rod Pull", formatPercent(Math.hypot(pull.x, pull.y))],
+      ["Brace", formatPercent(state.brace)],
+      ["Reel Taps", String(state.reelTaps)],
+      ["Timer", `${Math.max(0, state.timeLeft).toFixed(1)}s`],
+    ];
+  }
+
+  function getStatus() {
+    const state = game.state;
+    if (state.mode === "won") {
+      return {
+        state: "won",
+        label: "Caught",
+        title: "Rod Tug",
+        text: "Progress bar filled.",
+      };
+    }
+    if (state.mode === "lost") {
+      return {
+        state: "lost",
+        label: "Lost",
+        title: "Rod Tug",
+        text: state.result,
+      };
+    }
+    if (state.mode === "running") {
+      return {
+        state: "running",
+        label: "Running",
+        title: "Rod Tug",
+        text: state.result,
+      };
+    }
+    return {
+      state: "ready",
+      label: "Ready",
+      title: "Rod Tug",
+      text: "Click-hold the rod and drag opposite edge pressure. Use Space or Action to reel.",
+    };
+  }
+
+  function handlePress(source) {
+    let state = game.state;
+    if (state.mode === "ready") {
+      start();
+      state = game.state;
+    }
+    if (state.mode !== "running") return;
+    if (source === "canvas") {
+      state.pulling = true;
+      state.messageTimer = 0.2;
+      state.result = "Rod loaded. Drag opposite the fish.";
+      return;
+    }
+
+    const settings = rodTugSettings();
+    state.reelTaps += 1;
+    state.reelFlash = 1;
+    state.messageTimer = 0.45;
+
+    if (state.thrashing) {
+      state.tension = clamp(state.tension + settings.reelDuringThrashTension, 0, 1);
+      state.result = "Bad reel. Fish is thrashing.";
+      return;
+    }
+
+    state.progress = clamp(state.progress + settings.reelProgress, 0, 1);
+    state.tension = clamp(state.tension + settings.calmReelTension, 0, 1);
+    state.result = "Reel tap gained progress.";
+  }
+
+  function handleRelease(source) {
+    if (source !== "canvas") return;
+    const state = game.state;
+    state.pulling = false;
+    state.brace = 0;
+    state.wrongBrace = 0;
+    state.result = state.mode === "running" ? "Rod released." : state.result;
+  }
+
+  function updateRodTugFish(dt, settings, brace) {
+    const fish = game.state.fish;
+    fish.targetTimer -= dt;
+    if (fish.targetTimer <= 0) {
+      const target = chooseRodTugTarget(settings);
+      fish.targetX = target.x;
+      fish.targetY = target.y;
+      fish.targetTimer = random(settings.targetMin, settings.targetMax);
+    }
+
+    const slow = 1 - brace * settings.braceSlow;
+    fish.vx += (fish.targetX - fish.x) * settings.fishPull * slow * dt;
+    fish.vy += (fish.targetY - fish.y) * settings.fishPull * slow * dt;
+    const damping = clamp(0.12 - brace * 0.075, 0.045, 0.12);
+    fish.vx *= Math.pow(damping, dt);
+    fish.vy *= Math.pow(damping, dt);
+    fish.targetTimer += brace * dt * 0.34;
+    fish.x = clamp(fish.x + fish.vx * dt, 0.03, 0.97);
+    fish.y = clamp(fish.y + fish.vy * dt, 0.03, 0.97);
+  }
+
+  function updateRodThrash(dt, settings) {
+    const state = game.state;
+    if (state.thrashing) {
+      state.thrashLeft -= dt;
+      state.pulse = 1;
+      if (state.thrashLeft <= 0) {
+        state.thrashing = false;
+        state.thrashTimer = random(settings.thrashGapMin, settings.thrashGapMax);
+      }
+      return;
+    }
+
+    state.thrashTimer -= dt;
+    if (state.thrashTimer <= 0) {
+      state.thrashing = true;
+      state.thrashLeft = random(settings.thrashMin, settings.thrashMax);
+      state.pulse = 1;
+    }
+  }
+
+  function chooseRodTugTarget(settings) {
+    if (Math.random() < settings.edgeTargetChance) {
+      const side = Math.floor(Math.random() * 4);
+      const lowEdge = settings.edgeTargetInset;
+      const highEdge = 1 - settings.edgeTargetInset;
+      const edgeValue = Math.random() < 0.5 ? lowEdge : highEdge;
+      if (side === 0) return { x: random(0.16, 0.84), y: lowEdge };
+      if (side === 1) return { x: highEdge, y: random(0.16, 0.84) };
+      if (side === 2) return { x: random(0.16, 0.84), y: highEdge };
+      return { x: edgeValue, y: random(0.16, 0.84) };
+    }
+
+    return {
+      x: random(0.26, 0.74),
+      y: random(0.26, 0.74),
+    };
+  }
+
+  function rodTugSettings() {
+    const d = game.level - 1;
+    return {
+      fishPull: 2.7 + d * 0.45,
+      targetMin: 0.72 - d * 0.04,
+      targetMax: 1.45 - d * 0.07,
+      edgeThreshold: 0.64 - d * 0.015,
+      edgeWarnThreshold: 0.78 - d * 0.015,
+      edgeTargetChance: 0.42 + d * 0.045,
+      edgeTargetInset: 0.14 - d * 0.012,
+      edgeTension: 0.86 + d * 0.16,
+      pullRelief: 0.58 + d * 0.035,
+      wrongPullTension: 0.26 + d * 0.08,
+      braceSlow: 0.68,
       passiveRelief: 0.08,
       calmReelTension: 0.012 + d * 0.003,
       reelProgress: 0.022 - d * 0.0013,
@@ -1943,6 +2446,45 @@ function getPullVector() {
   return {
     x: x / length,
     y: y / length,
+  };
+}
+
+function getRodPoint(base, W, H) {
+  return {
+    x: clamp(base.x + 42, 18, W - 18),
+    y: clamp(base.y - 150, 18, H - 18),
+  };
+}
+
+function getRodBase(square, W, H) {
+  if (!pointer.active) {
+    return {
+      x: square.x + square.size * 0.5,
+      y: clamp(square.y + square.size + 52, 18, H - 18),
+    };
+  }
+
+  return {
+    x: clamp(pointer.x, 18, W - 18),
+    y: clamp(pointer.y, 18, H - 18),
+  };
+}
+
+function getRodPullVector(square) {
+  if (!pointer.active) return { x: 0, y: 0 };
+
+  const centerX = square.x + square.size / 2;
+  const centerY = square.y + square.size / 2;
+  const dx = pointer.x - centerX;
+  const dy = pointer.y - centerY;
+  const length = Math.hypot(dx, dy);
+  const deadZone = square.size * 0.13;
+  if (length < deadZone) return { x: 0, y: 0 };
+
+  const strength = clamp((length - deadZone) / (square.size * 0.32), 0, 1);
+  return {
+    x: (dx / length) * strength,
+    y: (dy / length) * strength,
   };
 }
 
