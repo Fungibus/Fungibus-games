@@ -36,6 +36,9 @@ const games = {
   drifter: createCurrentDrifter(difficulty),
   sorter: createNetSorter(difficulty),
   depth: createDepthDial(difficulty),
+  bite: createBiteCode(difficulty),
+  kelp: createKelpThread(difficulty),
+  net: createDragNet(difficulty),
 };
 
 let activeGame = games[activeId];
@@ -638,7 +641,7 @@ function createShadowCast(level) {
     update,
     draw,
     handlePress,
-    handleRelease() {},
+    handleRelease,
     setDifficulty(nextLevel) {
       game.level = nextLevel;
     },
@@ -2434,6 +2437,845 @@ function createDepthDial(level) {
       reelBack: 0.08 + d * 0.005,
       minDepth: 0.16,
       maxDepth: 0.9,
+    };
+  }
+}
+
+function createBiteCode(level) {
+  const game = {
+    id: "bite",
+    title: "Bite Code",
+    actionLabel: "Tap / Hold",
+    level,
+    state: {},
+    reset,
+    start,
+    update,
+    draw,
+    handlePress,
+    handleRelease,
+    setDifficulty(nextLevel) {
+      game.level = nextLevel;
+    },
+    getStats,
+    getStatus,
+  };
+
+  reset();
+  return game;
+
+  function reset() {
+    const settings = biteSettings();
+    game.state = {
+      mode: "ready",
+      phase: "observe",
+      elapsed: 0,
+      round: 1,
+      quota: settings.quota,
+      pattern: makeBitePattern(settings),
+      observeIndex: 0,
+      inputIndex: 0,
+      phaseTimer: 0.7,
+      pulseLeft: 0,
+      lastPulse: null,
+      inputTimeout: 0,
+      mistakes: 0,
+      pressing: false,
+      pressStart: 0,
+      feedback: 0,
+      result: "Watch the bobber code, then replay short taps and long holds.",
+    };
+  }
+
+  function start() {
+    let state = game.state;
+    if (state.mode === "running") return;
+    if (state.mode === "won" || state.mode === "lost") {
+      reset();
+      state = game.state;
+    }
+    state.mode = "running";
+  }
+
+  function update(dt) {
+    const state = game.state;
+    if (state.mode !== "running") return;
+
+    const settings = biteSettings();
+    state.elapsed += dt;
+    state.feedback = Math.max(0, state.feedback - dt * 3.8);
+    state.pulseLeft = Math.max(0, state.pulseLeft - dt);
+
+    if (state.phase === "observe") {
+      state.phaseTimer -= dt;
+      if (state.phaseTimer <= 0) {
+        if (state.observeIndex < state.pattern.length) {
+          const symbol = state.pattern[state.observeIndex];
+          const duration = symbol === "long" ? settings.longPulse : settings.shortPulse;
+          state.lastPulse = symbol;
+          state.pulseLeft = duration;
+          state.phaseTimer = duration + settings.rest;
+          state.observeIndex += 1;
+          state.result = symbol === "long" ? "Long bite." : "Short bite.";
+        } else {
+          state.phase = "input";
+          state.inputIndex = 0;
+          state.inputTimeout = settings.inputBase + state.pattern.length * settings.inputPerSymbol;
+          state.result = "Replay the bite code.";
+        }
+      }
+      return;
+    }
+
+    state.inputTimeout -= dt;
+    if (state.inputTimeout <= 0) {
+      state.mode = "lost";
+      state.result = "Bite code timed out.";
+    }
+  }
+
+  function draw(context, W, H) {
+    drawBackdrop(context, W, H, "Bite Code");
+    const state = game.state;
+    const pond = getPlayBox(W, H, 0.62, 0.56);
+    const bobberX = pond.x + pond.w * 0.5;
+    const bobberY = pond.y + pond.h * 0.46 + Math.sin(state.elapsed * 2.2) * 5;
+    const pulseAmount = state.pulseLeft > 0 ? (state.lastPulse === "long" ? 1 : 0.56) : 0;
+
+    drawPanel(context, pond.x - 12, pond.y - 12, pond.w + 24, pond.h + 24, 16);
+    context.fillStyle = "rgba(127, 212, 255, 0.14)";
+    context.fillRect(pond.x, pond.y, pond.w, pond.h);
+
+    context.strokeStyle = "rgba(245, 251, 248, 0.14)";
+    context.lineWidth = 2;
+    for (let i = 1; i < 5; i += 1) {
+      const y = pond.y + (pond.h * i) / 5;
+      context.beginPath();
+      context.moveTo(pond.x + 18, y + Math.sin(state.elapsed * 2 + i) * 4);
+      context.bezierCurveTo(pond.x + pond.w * 0.35, y - 16, pond.x + pond.w * 0.65, y + 16, pond.x + pond.w - 18, y);
+      context.stroke();
+    }
+
+    context.strokeStyle = "#f5fbf8";
+    context.lineWidth = 3;
+    context.beginPath();
+    context.moveTo(bobberX, pond.y + 18);
+    context.lineTo(bobberX, bobberY);
+    context.stroke();
+
+    context.fillStyle = state.phase === "observe" && pulseAmount ? "#ffd36b" : "#ff876f";
+    context.beginPath();
+    context.arc(bobberX, bobberY, 18 + pulseAmount * 12 + state.feedback * 8, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = "#f5fbf8";
+    context.beginPath();
+    context.arc(bobberX, bobberY - 7, 9, Math.PI, 0);
+    context.fill();
+
+    if (pulseAmount) {
+      context.strokeStyle = state.lastPulse === "long" ? "rgba(255, 211, 107, 0.72)" : "rgba(127, 212, 255, 0.72)";
+      context.lineWidth = state.lastPulse === "long" ? 5 : 3;
+      context.beginPath();
+      context.arc(bobberX, bobberY, 36 + pulseAmount * 18, 0, Math.PI * 2);
+      context.stroke();
+    }
+
+    const slotY = pond.y + pond.h * 0.78;
+    const slotGap = Math.min(58, pond.w / Math.max(5, state.pattern.length + 1));
+    const startX = bobberX - ((state.pattern.length - 1) * slotGap) / 2;
+    state.pattern.forEach((symbol, index) => {
+      const x = startX + index * slotGap;
+      const answered = state.phase === "input" && index < state.inputIndex;
+      const visible = state.phase === "observe" && index < state.observeIndex;
+      context.fillStyle = answered ? "#91d576" : visible ? "rgba(255, 211, 107, 0.28)" : "rgba(16, 32, 35, 0.62)";
+      roundedRect(context, x - 21, slotY - 15, 42, 30, 10);
+      context.fill();
+      context.strokeStyle = visible || answered ? (symbol === "long" ? "#ffd36b" : "#7fd4ff") : "rgba(245, 251, 248, 0.2)";
+      context.lineWidth = symbol === "long" ? 5 : 3;
+      context.beginPath();
+      context.moveTo(x - (symbol === "long" ? 13 : 6), slotY);
+      context.lineTo(x + (symbol === "long" ? 13 : 6), slotY);
+      context.stroke();
+    });
+
+    drawProgressBar(context, pond.x, pond.y - 42, pond.w, 16, (state.round - 1) / state.quota, "#91d576");
+    if (state.phase === "input" && state.mode === "running") {
+      drawProgressBar(context, pond.x, pond.y + pond.h + 26, pond.w, 12, state.inputTimeout / (biteSettings().inputBase + state.pattern.length * biteSettings().inputPerSymbol), "#ffd36b");
+    }
+    drawStageText(context, W, H, state.mode === "running" ? state.result : getStatus().text);
+  }
+
+  function handlePress() {
+    let state = game.state;
+    if (state.mode === "ready") {
+      start();
+      state = game.state;
+    }
+    if (state.mode !== "running" || state.phase !== "input" || state.pressing) return;
+    state.pressing = true;
+    state.pressStart = state.elapsed;
+    state.result = "Reading hold length.";
+  }
+
+  function handleRelease() {
+    const state = game.state;
+    if (state.mode !== "running" || state.phase !== "input" || !state.pressing) return;
+
+    const settings = biteSettings();
+    const held = state.elapsed - state.pressStart;
+    const symbol = held >= settings.longThreshold ? "long" : "short";
+    const expected = state.pattern[state.inputIndex];
+    state.pressing = false;
+
+    if (symbol !== expected) {
+      state.mistakes += 1;
+      state.feedback = 1;
+      state.result = `Wrong code: ${symbol}, expected ${expected}.`;
+      if (state.mistakes >= settings.maxMistakes) {
+        state.mode = "lost";
+        state.result = "Too many wrong bite codes.";
+        return;
+      }
+      replayPattern();
+      return;
+    }
+
+    state.inputIndex += 1;
+    state.feedback = 1;
+    state.result = symbol === "long" ? "Long hold matched." : "Short tap matched.";
+
+    if (state.inputIndex >= state.pattern.length) {
+      state.round += 1;
+      if (state.round > state.quota) {
+        state.mode = "won";
+        state.result = "Bite codes matched.";
+      } else {
+        state.pattern = makeBitePattern(settings);
+        replayPattern();
+      }
+    }
+  }
+
+  function replayPattern() {
+    const state = game.state;
+    state.phase = "observe";
+    state.observeIndex = 0;
+    state.inputIndex = 0;
+    state.phaseTimer = 0.62;
+    state.pulseLeft = 0;
+    state.pressing = false;
+  }
+
+  function getStats() {
+    const state = game.state;
+    return [
+      ["Round", `${Math.min(state.round, state.quota)} / ${state.quota}`],
+      ["Phase", state.phase === "observe" ? "Watch" : "Replay"],
+      ["Code", `${state.inputIndex} / ${state.pattern.length}`],
+      ["Mistakes", `${state.mistakes} / ${biteSettings().maxMistakes}`],
+    ];
+  }
+
+  function getStatus() {
+    const state = game.state;
+    if (state.mode === "won") return { state: "won", label: "Caught", title: "Bite Code", text: state.result };
+    if (state.mode === "lost") return { state: "lost", label: "Lost", title: "Bite Code", text: state.result };
+    if (state.mode === "running") return { state: "running", label: "Running", title: "Bite Code", text: state.result };
+    return {
+      state: "ready",
+      label: "Ready",
+      title: "Bite Code",
+      text: "Memorize the bobber bites, then replay short taps and long holds.",
+    };
+  }
+
+  function makeBitePattern(settings) {
+    const length = settings.baseLength + Math.floor((game.state.round || 1) / 2);
+    return Array.from({ length }, () => (Math.random() < settings.longChance ? "long" : "short"));
+  }
+
+  function biteSettings() {
+    const d = game.level - 1;
+    return {
+      quota: 4 + Math.floor(d * 0.5),
+      baseLength: 3 + Math.floor(d * 0.45),
+      maxMistakes: Math.max(2, 5 - Math.floor(d * 0.6)),
+      shortPulse: 0.22,
+      longPulse: 0.66,
+      rest: Math.max(0.18, 0.34 - d * 0.03),
+      longThreshold: Math.max(0.32, 0.48 - d * 0.018),
+      inputBase: Math.max(2.6, 4.2 - d * 0.22),
+      inputPerSymbol: Math.max(0.82, 1.22 - d * 0.045),
+      longChance: 0.42 + d * 0.025,
+    };
+  }
+}
+
+function createKelpThread(level) {
+  const game = {
+    id: "kelp",
+    title: "Kelp Thread",
+    actionLabel: "Grab Lure",
+    level,
+    state: {},
+    reset,
+    start,
+    update,
+    draw,
+    handlePress,
+    handleRelease,
+    setDifficulty(nextLevel) {
+      game.level = nextLevel;
+    },
+    getStats,
+    getStatus,
+  };
+
+  reset();
+  return game;
+
+  function reset() {
+    const settings = kelpSettings();
+    const gates = makeKelpGates(settings);
+    game.state = {
+      mode: "ready",
+      timeLeft: 46,
+      gates,
+      gateIndex: 1,
+      lure: { x: gates[0].x, y: gates[0].y, vx: 0, vy: 0 },
+      snags: 0,
+      invuln: 0,
+      wake: [],
+      kelp: makeKelpHazards(settings, gates),
+      dragging: false,
+      result: "Guide the lure through each glowing gate without brushing kelp.",
+    };
+  }
+
+  function start() {
+    let state = game.state;
+    if (state.mode === "running") return;
+    if (state.mode === "won" || state.mode === "lost") {
+      reset();
+      state = game.state;
+    }
+    state.mode = "running";
+  }
+
+  function update(dt) {
+    const state = game.state;
+    if (state.mode !== "running") return;
+
+    const settings = kelpSettings();
+    const box = getPlayBox(width, height, 0.66, 0.6);
+    const lure = state.lure;
+    const pull = getKelpPull(box);
+
+    state.timeLeft -= dt;
+    state.invuln = Math.max(0, state.invuln - dt);
+    state.wake = state.wake.map((wake) => ({ ...wake, age: wake.age + dt * 1.4 })).filter((wake) => wake.age < 1);
+
+    lure.vx += (pull.x * settings.speed - lure.vx) * dt * 5.4;
+    lure.vy += (pull.y * settings.speed - lure.vy) * dt * 5.4;
+    lure.x = clamp(lure.x + lure.vx * dt, 0.04, 0.96);
+    lure.y = clamp(lure.y + lure.vy * dt, 0.08, 0.92);
+    if (Math.hypot(lure.vx, lure.vy) > 0.06) {
+      state.wake.push({ x: lure.x, y: lure.y, age: 0 });
+    }
+
+    const target = state.gates[state.gateIndex];
+    if (target && Math.hypot(lure.x - target.x, lure.y - target.y) <= target.r) {
+      state.gateIndex += 1;
+      state.result = "Gate threaded.";
+    }
+
+    for (const hazard of state.kelp) {
+      hazard.sway += dt * hazard.speed;
+      const hx = hazard.x + Math.sin(hazard.sway) * hazard.swaySize;
+      const hit = Math.hypot(lure.x - hx, lure.y - hazard.y) < hazard.r + 0.028;
+      if (hit && state.invuln <= 0) {
+        const dx = lure.x - hx;
+        const dy = lure.y - hazard.y;
+        const len = Math.hypot(dx, dy) || 1;
+        lure.vx += (dx / len) * 0.7;
+        lure.vy += (dy / len) * 0.7;
+        state.snags += 1;
+        state.invuln = 0.85;
+        state.result = "Kelp snagged the lure.";
+      }
+    }
+
+    if (state.gateIndex >= state.gates.length) {
+      state.mode = "won";
+      state.result = "Lure cleared the kelp lane.";
+    } else if (state.snags >= settings.maxSnags) {
+      state.mode = "lost";
+      state.result = "Too many kelp snags.";
+    } else if (state.timeLeft <= 0) {
+      state.mode = "lost";
+      state.result = "Timer expired.";
+    }
+  }
+
+  function draw(context, W, H) {
+    drawBackdrop(context, W, H, "Kelp Thread");
+    const state = game.state;
+    const box = getPlayBox(W, H, 0.66, 0.6);
+    const lure = toBoxPoint(box, state.lure.x, state.lure.y);
+
+    drawPanel(context, box.x - 12, box.y - 12, box.w + 24, box.h + 24, 16);
+    context.fillStyle = "rgba(127, 212, 255, 0.12)";
+    context.fillRect(box.x, box.y, box.w, box.h);
+
+    context.strokeStyle = "rgba(245, 251, 248, 0.16)";
+    context.lineWidth = 2;
+    context.beginPath();
+    state.gates.forEach((gate, index) => {
+      const point = toBoxPoint(box, gate.x, gate.y);
+      if (index === 0) context.moveTo(point.x, point.y);
+      else context.lineTo(point.x, point.y);
+    });
+    context.stroke();
+
+    state.wake.forEach((wake) => {
+      const point = toBoxPoint(box, wake.x, wake.y);
+      const alpha = 1 - wake.age;
+      context.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.32})`;
+      context.lineWidth = 2;
+      context.beginPath();
+      context.arc(point.x, point.y, 5 + (1 - alpha) * 16, 0, Math.PI * 2);
+      context.stroke();
+    });
+
+    state.kelp.forEach((hazard) => {
+      const top = toBoxPoint(box, hazard.x, 1);
+      const bulb = toBoxPoint(box, hazard.x + Math.sin(hazard.sway) * hazard.swaySize, hazard.y);
+      context.strokeStyle = "rgba(145, 213, 118, 0.54)";
+      context.lineWidth = 5;
+      context.beginPath();
+      context.moveTo(top.x, top.y);
+      context.quadraticCurveTo((top.x + bulb.x) / 2 + Math.sin(hazard.sway * 0.7) * 18, (top.y + bulb.y) / 2, bulb.x, bulb.y);
+      context.stroke();
+      context.fillStyle = "#91d576";
+      context.beginPath();
+      context.ellipse(bulb.x, bulb.y, hazard.r * box.w, hazard.r * box.h * 1.4, Math.sin(hazard.sway) * 0.4, 0, Math.PI * 2);
+      context.fill();
+    });
+
+    state.gates.forEach((gate, index) => {
+      const point = toBoxPoint(box, gate.x, gate.y);
+      const done = index < state.gateIndex;
+      const active = index === state.gateIndex;
+      context.strokeStyle = done ? "#91d576" : active ? "#ffd36b" : "rgba(245, 251, 248, 0.32)";
+      context.lineWidth = active ? 5 : 3;
+      context.beginPath();
+      context.arc(point.x, point.y, gate.r * box.w, 0, Math.PI * 2);
+      context.stroke();
+      if (active) {
+        context.fillStyle = "rgba(255, 211, 107, 0.18)";
+        context.beginPath();
+        context.arc(point.x, point.y, gate.r * box.w, 0, Math.PI * 2);
+        context.fill();
+      }
+    });
+
+    context.fillStyle = state.invuln > 0 ? "#ff876f" : "#ffd36b";
+    context.beginPath();
+    context.ellipse(lure.x, lure.y, 18, 10, state.lure.vx * 0.35, 0, Math.PI * 2);
+    context.fill();
+    context.strokeStyle = "#102023";
+    context.lineWidth = 3;
+    context.stroke();
+
+    drawProgressBar(context, box.x, box.y - 42, box.w, 16, (state.gateIndex - 1) / (state.gates.length - 1), "#91d576");
+    drawStageText(context, W, H, state.mode === "running" ? "Drag the lure or steer with arrows through gates in order." : getStatus().text);
+  }
+
+  function handlePress(source) {
+    let state = game.state;
+    if (state.mode === "ready") {
+      start();
+      state = game.state;
+    }
+    if (state.mode === "running" && source === "canvas") {
+      state.dragging = true;
+      state.result = "Lure grabbed.";
+    }
+  }
+
+  function handleRelease(source) {
+    if (source !== "canvas") return;
+    const state = game.state;
+    state.dragging = false;
+    if (state.mode === "running") state.result = "Lure released. Arrows still steer.";
+  }
+
+  function getStats() {
+    const state = game.state;
+    return [
+      ["Gates", `${Math.max(0, state.gateIndex - 1)} / ${state.gates.length - 1}`],
+      ["Snags", `${state.snags} / ${kelpSettings().maxSnags}`],
+      ["Control", state.dragging ? "Pointer" : "Directions"],
+      ["Timer", `${Math.max(0, state.timeLeft).toFixed(1)}s`],
+    ];
+  }
+
+  function getStatus() {
+    const state = game.state;
+    if (state.mode === "won") return { state: "won", label: "Caught", title: "Kelp Thread", text: state.result };
+    if (state.mode === "lost") return { state: "lost", label: "Lost", title: "Kelp Thread", text: state.result };
+    if (state.mode === "running") return { state: "running", label: "Running", title: "Kelp Thread", text: state.result };
+    return {
+      state: "ready",
+      label: "Ready",
+      title: "Kelp Thread",
+      text: "Thread the lure through the gate path. Avoid kelp bulbs.",
+    };
+  }
+
+  function getKelpPull(box) {
+    if (inputDown && inputSource === "canvas" && pointer.active) {
+      const target = {
+        x: clamp((pointer.x - box.x) / box.w, 0, 1),
+        y: clamp((pointer.y - box.y) / box.h, 0, 1),
+      };
+      const lure = game.state.lure;
+      const dx = target.x - lure.x;
+      const dy = target.y - lure.y;
+      const length = Math.hypot(dx, dy);
+      if (length > 0.012) {
+        return {
+          x: dx / length,
+          y: dy / length,
+        };
+      }
+    }
+    return getPullVector();
+  }
+
+  function makeKelpGates(settings) {
+    return Array.from({ length: settings.gateCount }, (_, index) => {
+      const t = index / (settings.gateCount - 1);
+      return {
+        x: 0.09 + t * 0.82,
+        y: clamp(0.5 + Math.sin(t * Math.PI * 2.4 + settings.seed) * 0.25 + random(-0.08, 0.08), 0.16, 0.84),
+        r: 0.05,
+      };
+    });
+  }
+
+  function makeKelpHazards(settings, gates) {
+    const hazards = [];
+    let guard = 0;
+    while (hazards.length < settings.hazardCount && guard < 240) {
+      guard += 1;
+      const hazard = {
+        x: random(0.12, 0.88),
+        y: random(0.15, 0.85),
+        r: random(0.028, 0.044),
+        sway: random(0, Math.PI * 2),
+        swaySize: random(0.012, 0.032),
+        speed: random(1.1, 2.2),
+      };
+      const nearGate = gates.some((gate) => Math.hypot(gate.x - hazard.x, gate.y - hazard.y) < 0.13);
+      if (!nearGate) hazards.push(hazard);
+    }
+    return hazards;
+  }
+
+  function kelpSettings() {
+    const d = game.level - 1;
+    return {
+      gateCount: 6 + Math.floor(d * 0.8),
+      hazardCount: 9 + Math.floor(d * 1.8),
+      maxSnags: Math.max(3, 7 - Math.floor(d * 0.75)),
+      speed: 0.54 + d * 0.04,
+      seed: random(0, Math.PI * 2),
+    };
+  }
+}
+
+function createDragNet(level) {
+  const game = {
+    id: "net",
+    title: "Drag Net",
+    actionLabel: "Close Net",
+    level,
+    state: {},
+    reset,
+    start,
+    update,
+    draw,
+    handlePress,
+    handleRelease() {},
+    setDifficulty(nextLevel) {
+      game.level = nextLevel;
+    },
+    getStats,
+    getStatus,
+  };
+
+  reset();
+  return game;
+
+  function reset() {
+    const settings = dragNetSettings();
+    game.state = {
+      mode: "ready",
+      timeLeft: 44,
+      caught: 0,
+      fouls: 0,
+      net: { x: 0.5, y: 0.5, vx: 0, vy: 0, pulse: 0 },
+      fish: Array.from({ length: settings.schoolSize }, (_, index) => makeNetFish(settings, index)),
+      ripples: [],
+      result: "Move the net over keeper fish. Close it without scooping red bycatch.",
+    };
+  }
+
+  function start() {
+    let state = game.state;
+    if (state.mode === "running") return;
+    if (state.mode === "won" || state.mode === "lost") {
+      reset();
+      state = game.state;
+    }
+    state.mode = "running";
+  }
+
+  function update(dt, pressed) {
+    const state = game.state;
+    if (state.mode !== "running") return;
+
+    const settings = dragNetSettings();
+    const box = getPlayBox(width, height, 0.66, 0.6);
+    const net = state.net;
+    const pull = getNetPull(box);
+
+    state.timeLeft -= dt;
+    net.pulse = Math.max(0, net.pulse - dt * 3.6);
+    state.ripples = state.ripples.map((ripple) => ({ ...ripple, age: ripple.age + dt * 1.6 })).filter((ripple) => ripple.age < 1);
+
+    net.vx += (pull.x * settings.netSpeed - net.vx) * dt * 5.5;
+    net.vy += (pull.y * settings.netSpeed - net.vy) * dt * 5.5;
+    net.x = clamp(net.x + net.vx * dt, 0.08, 0.92);
+    net.y = clamp(net.y + net.vy * dt, 0.1, 0.9);
+
+    for (const fish of state.fish) {
+      fish.wander -= dt;
+      if (fish.wander <= 0) {
+        fish.tx = random(0.08, 0.92);
+        fish.ty = random(0.12, 0.88);
+        fish.wander = random(0.7, 1.6);
+      }
+      const flee = getFishFlee(fish, net, settings);
+      fish.vx += ((fish.tx - fish.x) * fish.speed + flee.x - fish.vx) * dt * 2.6;
+      fish.vy += ((fish.ty - fish.y) * fish.speed + flee.y - fish.vy) * dt * 2.6;
+      fish.x = clamp(fish.x + fish.vx * dt, 0.04, 0.96);
+      fish.y = clamp(fish.y + fish.vy * dt, 0.08, 0.92);
+    }
+
+    if (pressed) {
+      const netRadius = settings.radius * 0.78;
+      for (const fish of state.fish) {
+        if (fish.caught) continue;
+        const distance = Math.hypot(fish.x - net.x, fish.y - net.y);
+        if (distance <= netRadius) {
+          fish.caught = true;
+          net.pulse = 1;
+          state.ripples.push({ x: fish.x, y: fish.y, good: fish.kind === "keeper", age: 0 });
+          if (fish.kind === "keeper") {
+            state.caught += 1;
+            state.result = "Keeper fish netted.";
+          } else {
+            state.fouls += 1;
+            state.result = "Bycatch fouled the net.";
+          }
+        }
+      }
+    }
+
+    state.fish = state.fish.filter((fish) => !fish.caught);
+    while (state.fish.length < settings.schoolSize) {
+      state.fish.push(makeNetFish(settings, Math.floor(random(0, 1000))));
+    }
+
+    if (state.caught >= settings.quota) {
+      state.mode = "won";
+      state.result = "Keeper quota netted.";
+    } else if (state.fouls >= settings.maxFouls) {
+      state.mode = "lost";
+      state.result = "Too much bycatch.";
+    } else if (state.timeLeft <= 0) {
+      state.mode = "lost";
+      state.result = "Timer expired.";
+    }
+  }
+
+  function draw(context, W, H) {
+    drawBackdrop(context, W, H, "Drag Net");
+    const state = game.state;
+    const settings = dragNetSettings();
+    const box = getPlayBox(W, H, 0.66, 0.6);
+    const net = toBoxPoint(box, state.net.x, state.net.y);
+    const radius = settings.radius * Math.min(box.w, box.h);
+    const closed = inputDown && state.mode === "running";
+
+    drawPanel(context, box.x - 12, box.y - 12, box.w + 24, box.h + 24, 16);
+    context.fillStyle = "rgba(127, 212, 255, 0.12)";
+    context.fillRect(box.x, box.y, box.w, box.h);
+
+    state.ripples.forEach((ripple) => {
+      const point = toBoxPoint(box, ripple.x, ripple.y);
+      const alpha = 1 - ripple.age;
+      context.strokeStyle = ripple.good ? `rgba(145, 213, 118, ${alpha})` : `rgba(255, 135, 111, ${alpha})`;
+      context.lineWidth = 3;
+      context.beginPath();
+      context.arc(point.x, point.y, 8 + (1 - alpha) * 28, 0, Math.PI * 2);
+      context.stroke();
+    });
+
+    state.fish.forEach((fish) => {
+      const point = toBoxPoint(box, fish.x, fish.y);
+      context.fillStyle = fish.kind === "keeper" ? "#ffd36b" : "#ff876f";
+      context.beginPath();
+      context.ellipse(point.x, point.y, fish.kind === "keeper" ? 17 : 15, fish.kind === "keeper" ? 9 : 13, fish.vx * 0.45, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = fish.kind === "keeper" ? "#ff876f" : "#102023";
+      context.beginPath();
+      context.moveTo(point.x - 17, point.y);
+      context.lineTo(point.x - 28, point.y - 8);
+      context.lineTo(point.x - 28, point.y + 8);
+      context.closePath();
+      context.fill();
+      if (fish.kind === "bycatch") {
+        context.strokeStyle = "#f5fbf8";
+        context.lineWidth = 2;
+        context.beginPath();
+        context.moveTo(point.x - 8, point.y - 10);
+        context.lineTo(point.x + 8, point.y + 10);
+        context.moveTo(point.x + 8, point.y - 10);
+        context.lineTo(point.x - 8, point.y + 10);
+        context.stroke();
+      }
+    });
+
+    context.strokeStyle = closed ? "#ffd36b" : "rgba(245, 251, 248, 0.7)";
+    context.lineWidth = closed ? 6 : 4;
+    context.beginPath();
+    context.arc(net.x, net.y, radius * (closed ? 0.78 : 1), 0, Math.PI * 2);
+    context.stroke();
+    context.strokeStyle = "rgba(245, 251, 248, 0.28)";
+    context.lineWidth = 1;
+    for (let i = -2; i <= 2; i += 1) {
+      context.beginPath();
+      context.moveTo(net.x - radius, net.y + i * radius * 0.32);
+      context.lineTo(net.x + radius, net.y + i * radius * 0.32);
+      context.moveTo(net.x + i * radius * 0.32, net.y - radius);
+      context.lineTo(net.x + i * radius * 0.32, net.y + radius);
+      context.stroke();
+    }
+    if (state.net.pulse > 0) {
+      context.strokeStyle = "rgba(255, 255, 255, 0.72)";
+      context.lineWidth = 2;
+      context.beginPath();
+      context.arc(net.x, net.y, radius + state.net.pulse * 18, 0, Math.PI * 2);
+      context.stroke();
+    }
+
+    drawProgressBar(context, box.x, box.y - 42, box.w, 16, state.caught / settings.quota, "#91d576");
+    drawStageText(context, W, H, state.mode === "running" ? "Aim with pointer or arrows. Hold action to close the net over yellow fish." : getStatus().text);
+  }
+
+  function handlePress() {
+    const state = game.state;
+    if (state.mode === "ready") start();
+  }
+
+  function getStats() {
+    const state = game.state;
+    const settings = dragNetSettings();
+    return [
+      ["Keepers", `${state.caught} / ${settings.quota}`],
+      ["Bycatch", `${state.fouls} / ${settings.maxFouls}`],
+      ["Net", inputDown && state.mode === "running" ? "Closed" : "Open"],
+      ["Timer", `${Math.max(0, state.timeLeft).toFixed(1)}s`],
+    ];
+  }
+
+  function getStatus() {
+    const state = game.state;
+    if (state.mode === "won") return { state: "won", label: "Caught", title: "Drag Net", text: state.result };
+    if (state.mode === "lost") return { state: "lost", label: "Lost", title: "Drag Net", text: state.result };
+    if (state.mode === "running") return { state: "running", label: "Running", title: "Drag Net", text: state.result };
+    return {
+      state: "ready",
+      label: "Ready",
+      title: "Drag Net",
+      text: "Move the net, then close it around keeper fish without red bycatch.",
+    };
+  }
+
+  function getNetPull(box) {
+    if (pointer.active) {
+      const target = {
+        x: clamp((pointer.x - box.x) / box.w, 0, 1),
+        y: clamp((pointer.y - box.y) / box.h, 0, 1),
+      };
+      const net = game.state.net;
+      const dx = target.x - net.x;
+      const dy = target.y - net.y;
+      const length = Math.hypot(dx, dy);
+      if (length > 0.02) {
+        return {
+          x: dx / length,
+          y: dy / length,
+        };
+      }
+    }
+    return getPullVector();
+  }
+
+  function getFishFlee(fish, net, settings) {
+    const dx = fish.x - net.x;
+    const dy = fish.y - net.y;
+    const distance = Math.hypot(dx, dy) || 1;
+    if (distance > settings.radius * 1.65) return { x: 0, y: 0 };
+    const strength = (1 - distance / (settings.radius * 1.65)) * settings.flee;
+    return {
+      x: (dx / distance) * strength,
+      y: (dy / distance) * strength,
+    };
+  }
+
+  function makeNetFish(settings, index) {
+    const edge = Math.random() < 0.5;
+    const keeper = Math.random() > settings.bycatchChance;
+    return {
+      kind: keeper ? "keeper" : "bycatch",
+      x: edge ? random(0.04, 0.16) : random(0.18, 0.94),
+      y: edge ? random(0.1, 0.9) : random(0.08, 0.92),
+      vx: random(-0.04, 0.04),
+      vy: random(-0.04, 0.04),
+      tx: random(0.08, 0.92),
+      ty: random(0.12, 0.88),
+      speed: random(settings.fishSpeedMin, settings.fishSpeedMax) * (keeper ? 1 : 0.84),
+      wander: random(0.25, 1.2) + index * 0.03,
+      caught: false,
+    };
+  }
+
+  function dragNetSettings() {
+    const d = game.level - 1;
+    return {
+      quota: 9 + Math.floor(d * 1.25),
+      maxFouls: Math.max(2, 5 - Math.floor(d * 0.65)),
+      schoolSize: 12 + Math.floor(d * 1.2),
+      bycatchChance: 0.24 + d * 0.035,
+      radius: Math.max(0.085, 0.13 - d * 0.006),
+      netSpeed: 0.58 + d * 0.04,
+      fishSpeedMin: 0.11 + d * 0.012,
+      fishSpeedMax: 0.22 + d * 0.018,
+      flee: 0.16 + d * 0.016,
     };
   }
 }

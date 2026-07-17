@@ -101,12 +101,15 @@ body {
 }
 
 .workbench-tabs {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(8.4rem, 1fr));
+  display: flex;
   gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.1rem;
 }
 
 .tab-button {
+  flex: 0 0 auto;
+  min-width: 8.4rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -385,7 +388,6 @@ body {
   }
 
   .workbench-tabs {
-    grid-template-columns: 1fr;
     gap: 0.38rem;
   }
 
