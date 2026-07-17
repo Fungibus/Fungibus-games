@@ -638,7 +638,7 @@ function createShadowCast(level) {
     update,
     draw,
     handlePress,
-    handleRelease,
+    handleRelease() {},
     setDifficulty(nextLevel) {
       game.level = nextLevel;
     },
@@ -941,7 +941,7 @@ function createSquareTug(level) {
     update,
     draw,
     handlePress,
-    handleRelease,
+    handleRelease() {},
     setDifficulty(nextLevel) {
       game.level = nextLevel;
     },
