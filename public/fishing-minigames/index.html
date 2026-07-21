@@ -45,6 +45,12 @@
             <strong id="resultTitle">Bar Keeper</strong>
             <span id="resultText">Press Start to begin.</span>
           </div>
+          <div id="retryPopup" class="retry-popup" role="dialog" aria-labelledby="retryTitle" hidden>
+            <p id="retryKicker">Lost</p>
+            <strong id="retryTitle">Try Again</strong>
+            <span id="retryText">Run ended.</span>
+            <button id="retryButton" type="button">Retry</button>
+          </div>
         </section>
 
         <aside class="test-panel" aria-label="Minigame test controls">
@@ -66,12 +72,53 @@
             </div>
           </section>
 
+          <section id="upgradePanel" class="panel-block upgrade-panel" hidden>
+            <p class="eyebrow">Shadow Upgrades</p>
+            <div class="upgrade-list">
+              <label class="upgrade-toggle">
+                <input type="checkbox" data-upgrade="shadowLens">
+                <span>
+                  <strong>Shadow Lens</strong>
+                  <small>Shows a faint landing-time shadow.</small>
+                </span>
+              </label>
+              <label class="upgrade-toggle">
+                <input type="checkbox" data-upgrade="quickReel">
+                <span>
+                  <strong>Quick Reel</strong>
+                  <small>Shortens lure travel time.</small>
+                </span>
+              </label>
+              <label class="upgrade-toggle">
+                <input type="checkbox" data-upgrade="steadyHands">
+                <span>
+                  <strong>Steady Hands</strong>
+                  <small>Slows charge-meter bounce.</small>
+                </span>
+              </label>
+              <label class="upgrade-toggle">
+                <input type="checkbox" data-upgrade="softSplash">
+                <span>
+                  <strong>Soft Splash</strong>
+                  <small>Briefly calms fish after close casts.</small>
+                </span>
+              </label>
+              <label class="upgrade-toggle">
+                <input type="checkbox" data-upgrade="barbedHook">
+                <span>
+                  <strong>Barbed Hook</strong>
+                  <small>Widens the catch window.</small>
+                </span>
+              </label>
+            </div>
+          </section>
+
           <section class="panel-block">
             <p class="eyebrow">Live Stats</p>
             <dl id="statsList" class="stats-list"></dl>
           </section>
 
-          <section class="panel-block">
+          <section id="directionPanel" class="panel-block" hidden>
             <p class="eyebrow">Pull Direction</p>
             <div class="direction-pad" aria-label="Pull direction controls">
               <button class="dir-button up" type="button" data-dir="up" aria-label="Pull up">Up</button>

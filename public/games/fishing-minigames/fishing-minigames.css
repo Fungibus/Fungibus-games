@@ -124,7 +124,9 @@ body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(17rem, 21rem);
   gap: 0.65rem;
+  height: 100%;
   min-height: 0;
+  overflow: hidden;
 }
 
 .fishing-minigames-stage,
@@ -158,6 +160,7 @@ body {
   display: grid;
   gap: 0.12rem;
   width: min(92%, 28rem);
+  pointer-events: none;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 10px;
   background: rgba(16, 32, 35, 0.76);
@@ -191,11 +194,71 @@ body {
   font-weight: 700;
 }
 
+.retry-popup {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  display: grid;
+  gap: 0.45rem;
+  width: min(90%, 24rem);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  background: rgba(16, 32, 35, 0.9);
+  box-shadow: 0 24px 64px rgba(8, 26, 30, 0.38);
+  padding: 1rem;
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+
+.retry-popup[hidden] {
+  display: none;
+}
+
+.retry-popup p,
+.retry-popup span {
+  margin: 0;
+}
+
+.retry-popup p {
+  color: var(--fish-amber);
+  font-size: 0.7rem;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.retry-popup strong {
+  color: var(--fish-text);
+  font-size: 1.45rem;
+  line-height: 1.1;
+}
+
+.retry-popup span {
+  color: var(--fish-muted);
+  font-size: 0.88rem;
+  font-weight: 750;
+}
+
+.retry-popup button {
+  min-height: 2.75rem;
+  margin-top: 0.25rem;
+  border-color: rgba(255, 255, 255, 0.24);
+  background: var(--fish-amber);
+  color: var(--fish-ink);
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
 .test-panel {
   display: grid;
   align-content: start;
   gap: 0.65rem;
+  max-height: 100%;
   min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.15rem;
+  scrollbar-gutter: stable;
 }
 
 .panel-block {
@@ -303,6 +366,47 @@ body {
   text-align: right;
 }
 
+.upgrade-list {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+}
+
+.upgrade-toggle {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.55rem;
+  align-items: start;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  padding: 0.52rem 0.58rem;
+}
+
+.upgrade-toggle input {
+  margin-top: 0.18rem;
+  accent-color: var(--fish-amber);
+}
+
+.upgrade-toggle span {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.upgrade-toggle strong {
+  color: var(--fish-text);
+  font-size: 0.82rem;
+  line-height: 1.15;
+}
+
+.upgrade-toggle small {
+  color: var(--fish-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
 .direction-pad {
   display: grid;
   grid-template-areas:
@@ -393,10 +497,18 @@ body {
 
   .workbench-layout {
     grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
   }
 
   .fishing-minigames-stage {
     height: min(64svh, 34rem);
     min-height: 25rem;
+  }
+
+  .test-panel {
+    max-height: none;
+    overflow-y: visible;
+    padding-right: 0;
   }
 }

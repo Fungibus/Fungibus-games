@@ -7,14 +7,23 @@ const els = {
   startButton: document.querySelector("#startButton"),
   resetButton: document.querySelector("#resetButton"),
   holdButton: document.querySelector("#holdButton"),
+  directionPanel: document.querySelector("#directionPanel"),
+  upgradePanel: document.querySelector("#upgradePanel"),
+  upgradeInputs: [...document.querySelectorAll("[data-upgrade]")],
   difficultySlider: document.querySelector("#difficultySlider"),
   difficultyValue: document.querySelector("#difficultyValue"),
   activeGameTitle: document.querySelector("#activeGameTitle"),
   statusPill: document.querySelector("#statusPill"),
   statsList: document.querySelector("#statsList"),
+  resultPanel: document.querySelector("#resultPanel"),
   resultKicker: document.querySelector("#resultKicker"),
   resultTitle: document.querySelector("#resultTitle"),
   resultText: document.querySelector("#resultText"),
+  retryPopup: document.querySelector("#retryPopup"),
+  retryKicker: document.querySelector("#retryKicker"),
+  retryTitle: document.querySelector("#retryTitle"),
+  retryText: document.querySelector("#retryText"),
+  retryButton: document.querySelector("#retryButton"),
 };
 
 let width = 0;
@@ -57,6 +66,13 @@ els.dirButtons.forEach((button) => {
   button.addEventListener("pointercancel", () => setDirection(button.dataset.dir, false));
 });
 
+els.upgradeInputs.forEach((input) => {
+  input.addEventListener("change", () => {
+    syncActiveUpgrades();
+    updateUi();
+  });
+});
+
 els.startButton.addEventListener("click", () => {
   activeGame.start();
   updateUi();
@@ -66,6 +82,8 @@ els.resetButton.addEventListener("click", () => {
   activeGame.reset();
   updateUi();
 });
+
+els.retryButton.addEventListener("click", retryActiveGame);
 
 els.difficultySlider.addEventListener("input", () => {
   difficulty = Number(els.difficultySlider.value);
@@ -145,6 +163,7 @@ function selectGame(id) {
   activeId = id;
   activeGame = games[activeId];
   activeGame.setDifficulty(difficulty);
+  syncActiveUpgrades();
   activeGame.reset();
 
   els.tabs.forEach((button) => {
@@ -156,13 +175,41 @@ function selectGame(id) {
   updateUi();
 }
 
+function selectedUpgrades() {
+  return els.upgradeInputs.filter((input) => input.checked).map((input) => input.dataset.upgrade);
+}
+
+function syncActiveUpgrades() {
+  if (activeGame.setUpgrades) {
+    activeGame.setUpgrades(selectedUpgrades());
+  }
+}
+
 function pressAction(source = "button") {
+  const status = activeGame.getStatus();
+  if (isEnded(status)) {
+    retryActiveGame();
+    return;
+  }
+
   inputDown = true;
   inputSource = source;
   els.holdButton.classList.add("is-pressed");
-  if (activeGame.getStatus().state === "ready") activeGame.start();
+  if (status.state === "ready") activeGame.start();
   activeGame.handlePress(source);
   updateUi();
+}
+
+function retryActiveGame() {
+  inputDown = false;
+  inputSource = null;
+  els.holdButton.classList.remove("is-pressed");
+  activeGame.start();
+  updateUi();
+}
+
+function isEnded(status) {
+  return status.state === "won" || status.state === "lost";
 }
 
 function releaseAction() {
@@ -232,14 +279,25 @@ function tick(now) {
 
 function updateUi() {
   const status = activeGame.getStatus();
+  const ended = isEnded(status);
   els.difficultyValue.textContent = String(difficulty);
   els.activeGameTitle.textContent = activeGame.title;
   els.statusPill.textContent = status.label;
   els.statusPill.dataset.state = status.state;
+  els.resultPanel.hidden = ended;
   els.resultKicker.textContent = status.label;
   els.resultTitle.textContent = status.title;
   els.resultText.textContent = status.text;
-  els.holdButton.textContent = activeGame.actionLabel;
+  els.retryPopup.hidden = !ended;
+  els.retryKicker.textContent = status.label;
+  els.retryTitle.textContent = status.state === "won" ? "Caught" : "Try Again";
+  els.retryText.textContent = status.text;
+  els.holdButton.textContent = ended ? "Try Again" : activeGame.actionLabel;
+  els.directionPanel.hidden = !activeGame.usesDirections;
+  els.upgradePanel.hidden = !activeGame.supportsUpgrades;
+  els.upgradeInputs.forEach((input) => {
+    input.disabled = !activeGame.supportsUpgrades;
+  });
   els.statsList.replaceChildren(
     ...activeGame.getStats().map(([label, value]) => {
       const row = document.createElement("div");
@@ -634,7 +692,9 @@ function createShadowCast(level) {
     id: "cast",
     title: "Shadow Cast",
     actionLabel: "Hold to Charge",
+    supportsUpgrades: true,
     level,
+    upgrades: new Set(),
     state: {},
     reset,
     start,
@@ -644,6 +704,9 @@ function createShadowCast(level) {
     handleRelease,
     setDifficulty(nextLevel) {
       game.level = nextLevel;
+    },
+    setUpgrades(nextUpgrades) {
+      game.upgrades = new Set(nextUpgrades);
     },
     getStats,
     getStatus,
@@ -660,9 +723,11 @@ function createShadowCast(level) {
       hits: 0,
       streak: 0,
       charge: 0,
+      chargeDirection: 1,
       charging: false,
       result: "Lead the fish shadow and cast where it will be.",
       splashTimer: 0,
+      softSplashTimer: 0,
       cast: null,
       fish: {
         x: 0.5,
@@ -693,11 +758,19 @@ function createShadowCast(level) {
     const settings = castSettings();
     state.timeLeft -= dt;
     state.splashTimer = Math.max(0, state.splashTimer - dt);
+    state.softSplashTimer = Math.max(0, state.softSplashTimer - dt);
 
     updateShadowFish(dt, settings);
 
-    if (pressed || state.charging) {
-      state.charge = state.charging ? clamp(state.charge + settings.chargeRate * dt, 0, 1) : state.charge;
+    if (state.charging && pressed) {
+      state.charge += settings.chargeRate * state.chargeDirection * dt;
+      if (state.charge >= 1) {
+        state.charge = 1;
+        state.chargeDirection = -1;
+      } else if (state.charge <= 0) {
+        state.charge = 0;
+        state.chargeDirection = 1;
+      }
     }
 
     if (state.cast) {
@@ -707,7 +780,7 @@ function createShadowCast(level) {
       }
     }
 
-    if (state.hits >= 5) state.mode = "won";
+    if (state.hits >= 1) state.mode = "won";
     if ((state.attempts <= 0 || state.timeLeft <= 0) && state.mode !== "won") {
       state.mode = "lost";
     }
@@ -719,6 +792,7 @@ function createShadowCast(level) {
   function draw(context, W, H) {
     drawBackdrop(context, W, H, "Shadow Cast");
     const state = game.state;
+    const settings = castSettings();
     const square = getCastSquare(W, H);
     const origin = getCastOrigin(W, H);
     const aim = getAimVector(origin);
@@ -727,6 +801,10 @@ function createShadowCast(level) {
       x: square.x + state.fish.x * square.size,
       y: square.y + state.fish.y * square.size,
     };
+    const landingDelay = state.cast
+      ? Math.max(0, (1 - clamp(state.cast.t, 0, 1)) * state.cast.duration)
+      : settings.travelBase + state.charge * settings.travelCharge;
+    const lensFish = predictShadowFish(state.fish, landingDelay);
 
     drawPanel(context, square.x - 12, square.y - 12, square.size + 24, square.size + 24, 16);
 
@@ -765,6 +843,24 @@ function createShadowCast(level) {
     context.ellipse(fish.x, fish.y, 26, 13, state.fish.vx * 0.45, 0, Math.PI * 2);
     context.fill();
 
+    if (hasUpgrade("shadowLens")) {
+      context.strokeStyle = "rgba(127, 212, 255, 0.72)";
+      context.lineWidth = 2;
+      context.setLineDash([6, 6]);
+      context.beginPath();
+      context.ellipse(
+        square.x + lensFish.x * square.size,
+        square.y + lensFish.y * square.size,
+        24,
+        12,
+        state.fish.vx * 0.45,
+        0,
+        Math.PI * 2
+      );
+      context.stroke();
+      context.setLineDash([]);
+    }
+
     context.fillStyle = "#91d576";
     context.beginPath();
     context.arc(origin.x, origin.y, 18, 0, Math.PI * 2);
@@ -792,7 +888,7 @@ function createShadowCast(level) {
       context.stroke();
     }
 
-    drawProgressBar(context, W * 0.2, H * 0.82, W * 0.48, 16, state.hits / 5, "#91d576");
+    drawProgressBar(context, W * 0.2, H * 0.82, W * 0.48, 16, state.hits, "#91d576");
     drawProgressBar(context, W * 0.2, H * 0.87, W * 0.48, 12, state.charge, "#ffd36b");
     drawStageText(context, W, H, state.mode === "running" ? "Aim with pointer, hold to charge, release to cast ahead" : getStatus().text);
   }
@@ -800,9 +896,10 @@ function createShadowCast(level) {
   function getStats() {
     const state = game.state;
     return [
-      ["Hooks", `${state.hits} / 5`],
+      ["Catch", `${state.hits} / 1`],
       ["Casts", String(state.attempts)],
       ["Charge", formatPercent(state.charge)],
+      ["Upgrades", String(game.upgrades.size)],
       ["Timer", `${Math.max(0, state.timeLeft).toFixed(1)}s`],
     ];
   }
@@ -814,7 +911,7 @@ function createShadowCast(level) {
         state: "won",
         label: "Caught",
         title: "Shadow Cast",
-        text: "Predicted enough darts.",
+        text: "Fish caught.",
       };
     }
     if (state.mode === "lost") {
@@ -847,7 +944,8 @@ function createShadowCast(level) {
     if (state.mode !== "running" || state.cast) return;
     state.charging = true;
     state.charge = 0;
-    state.result = "Charging cast.";
+    state.chargeDirection = 1;
+    state.result = "Charging cast. Release when the line reaches the right distance.";
   }
 
   function handleRelease() {
@@ -875,6 +973,7 @@ function createShadowCast(level) {
 
   function updateShadowFish(dt, settings) {
     const fish = game.state.fish;
+    const pull = game.state.softSplashTimer > 0 ? settings.fishPull * settings.softSplashPull : settings.fishPull;
     fish.targetTimer -= dt;
     if (fish.targetTimer <= 0) {
       fish.targetX = random(0.08, 0.92);
@@ -882,8 +981,8 @@ function createShadowCast(level) {
       fish.targetTimer = random(settings.dartMin, settings.dartMax);
     }
 
-    fish.vx += (fish.targetX - fish.x) * settings.fishPull * dt;
-    fish.vy += (fish.targetY - fish.y) * settings.fishPull * dt;
+    fish.vx += (fish.targetX - fish.x) * pull * dt;
+    fish.vy += (fish.targetY - fish.y) * pull * dt;
     fish.vx *= Math.pow(0.13, dt);
     fish.vy *= Math.pow(0.13, dt);
     fish.x = clamp(fish.x + fish.vx * dt, 0.04, 0.96);
@@ -914,13 +1013,16 @@ function createShadowCast(level) {
       fish.targetTimer = 0;
     } else {
       state.streak = 0;
+      if (hasUpgrade("softSplash") && inSquare && distance <= settings.softSplashRange) {
+        state.softSplashTimer = settings.softSplashDuration;
+      }
       state.result = inSquare ? `Missed by ${Math.round(distance * 100)}.` : "Cast landed outside the square.";
     }
   }
 
   function castSettings() {
     const d = game.level;
-    return {
+    const settings = {
       chargeRate: 0.92 + d * 0.1,
       travelBase: 0.22 + d * 0.015,
       travelCharge: 0.34 + d * 0.025,
@@ -928,6 +1030,33 @@ function createShadowCast(level) {
       dartMin: 0.34 - d * 0.035,
       dartMax: 0.9 - d * 0.06,
       hitRadius: 0.12 - d * 0.011,
+      softSplashDuration: 1.25,
+      softSplashPull: 0.42,
+      softSplashRange: 0.2,
+    };
+
+    if (hasUpgrade("quickReel")) {
+      settings.travelBase *= 0.58;
+      settings.travelCharge *= 0.58;
+    }
+    if (hasUpgrade("steadyHands")) {
+      settings.chargeRate *= 0.62;
+    }
+    if (hasUpgrade("barbedHook")) {
+      settings.hitRadius += 0.035;
+    }
+
+    return settings;
+  }
+
+  function hasUpgrade(upgrade) {
+    return game.upgrades.has(upgrade);
+  }
+
+  function predictShadowFish(fish, delay) {
+    return {
+      x: clamp(fish.x + fish.vx * delay, 0.04, 0.96),
+      y: clamp(fish.y + fish.vy * delay, 0.04, 0.96),
     };
   }
 }
@@ -937,6 +1066,7 @@ function createSquareTug(level) {
     id: "tug",
     title: "Square Tug",
     actionLabel: "Tap to Reel",
+    usesDirections: true,
     level,
     state: {},
     reset,
@@ -1995,6 +2125,7 @@ function createNetSorter(level) {
     id: "sorter",
     title: "Net Sorter",
     actionLabel: "Start Chute",
+    usesDirections: true,
     level,
     state: {},
     reset,
